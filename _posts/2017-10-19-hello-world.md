@@ -11,7 +11,7 @@ tag: jekyll
 
 Anyway，意大利炮已经架起来了，前进的路上没有回头的路，游离于情怀与现实之间，为了梦想，为了我家的猫，为了一切一切有的没的，战斗吧！少年！
 
-```
+```java
 public static void main(String[] args){
   System.out.println("Hello World!");
 }
