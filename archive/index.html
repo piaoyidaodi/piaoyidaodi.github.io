@@ -1,0 +1,27 @@
+---
+layout: page
+---
+<div class="well page-well">
+    <div class="container-fluid">
+        {% for post in site.posts %}
+            {% capture pre_y %}{{ post.date | date:"%Y "}}{% endcapture %}
+            {% capture next_y %}{{ post.previous.date | date:"%Y "}}{% endcapture %}
+            {% if forloop.first %}
+                <h3 style="text-align:center;">{{ post.date | date:"%Y" }}</h3>
+                <hr>
+                <ul>
+            {% endif %}
+                    <li style="font-size:1.25em;"><span class="small text-muted">{{ post.date | date: "%m月%d日" }}</span>&nbsp;<a href="{{ site.baseurl}}{{ post.url }}">{{ post.title }}</a></li>
+            {% if forloop.last %}
+                </ul>
+            {% else %}
+            {% if pre_y!= next_y %}
+                </ul>
+                <h3 style="text-align:center;">{{next_y}}</h3>
+                <hr>
+                <ul>
+            {% endif %}
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>

@@ -1,0 +1,8 @@
+<div class="well-sidebar well col-sm-12">
+    <h1>最新文章</h1>
+    <ul class="fa-ul">
+        {% for post in site.posts limit:5 %}
+        <li><p><i class="fa-li fa fa-square"></i><a href="{{ site.baseurl }}{{ post.url }}" title="{{ post.title }}">{{ post.title }}</a></p></li>
+        {% endfor %}
+    </ul>
+</div>

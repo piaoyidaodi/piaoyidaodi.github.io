@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    {% include head.html %}
+
+    <body>
+
+        {% include header.html %}
+
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-7 col-sm-offset-1 col-xs-12">
+                    {{ content }}
+                </div>
+                <div class="col-sm-3 hidden-xs">
+                    {% include siderbar-info.html %}
+                </div>
+            </div>
+        </div>
+
+        {% include footer.html %}
+        
+    </body>
+</html>

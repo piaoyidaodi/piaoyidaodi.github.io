@@ -1,0 +1,105 @@
+body {
+    height: 100%;
+    padding-top: 60px;
+    padding-bottom: 60px;
+}
+
+h1,h2,h3,h4,h5,h6{
+    display: block;
+}
+
+.article-info {
+    font-size: 1.1em;
+    margin: 10px 0px;
+    /* padding-left: 5%; */
+    font-style: italic;
+}
+
+.page-well hr{
+    border-top:2px solid rgba(0, 102, 255, 0.404);
+}
+
+.blog-list-summary {
+    margin-bottom: 10px;
+}
+
+.blog-list-summary .content p{
+    font-size: 1em;
+}
+
+.blog-list-summary h5{
+    float: right;
+}
+
+.container-header {
+    /* padding-left: 5%;
+    padding-right: 5%; */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.container-nav nav{
+    padding-left: 10%;
+    padding-right: 10%;
+}
+
+.menu {
+    position: fixed;
+    top:60px;
+    right:8.33333333%;
+}
+
+.my-pagination {
+    display: block;
+    font-size:1.1em;
+}
+
+.well-sidebar{
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.well-sidebar h1{
+    font-size: 18px;
+    color: red;
+}
+
+.well-info{
+    text-align: center; 
+}
+
+.well-info h4{
+    color: darkblue;
+}
+
+.well-info p{
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.well-related-post{
+    text-align: center;    
+}
+
+#nav-collapse ul li{
+    padding-left: 3px;
+    padding-right: 3px;
+}
+
+.post-menu {
+    padding-left: 10px;
+    padding-right: 2px;
+    font-size: 1.2em;
+    color: red;
+    overflow: hidden;
+}
+
+#post-menu ul li{
+    list-style: none;
+    padding-left: 5px;
+}
+
+#post-menu ul{
+    list-style: none;
+    padding-left: 5px;
+}

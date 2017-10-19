@@ -1,0 +1,16 @@
+---
+layout: page
+---
+<div class="well page-well">
+    <div class="container-fluid">
+        {% for category in site.categories %}
+            <h3 style="text-align:center;" id="{{ category | first }}">{{ category | first }}</h3>
+            <hr>
+            <ul>
+                {% for post in category.last %}
+                <li style="font-size:1.25em;"><span class="small text-muted">{{ post.date | date: "%Y年%m月%d日" }}</span>&nbsp;<a href="{{ site.baseurl}}{{ post.url }}">{{ post.title }}</a></li>
+                {% endfor %}
+            </ul>
+        {% endfor %}
+    </div>
+</div>
