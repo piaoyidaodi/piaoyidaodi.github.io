@@ -17,10 +17,12 @@
 permalink: /:year/:month/:day/:title/
 # permalink: pretty
 
-gems: [jekyll-paginate]
+gems: 
+  - jekyll-paginate
+  - rouge
 # 分页
 paginate: 5
-
+highlighter: rouge
 
 title: "可知不可违的个人主页"
 description: >- # this means to ignore newlines until "baseurl:"
