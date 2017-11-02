@@ -8,6 +8,18 @@ h1,h2,h3,h4,h5,h6{
     display: block;
 }
 
+.article-content p,ol{
+    font-size: 1.2em;
+}
+
+.article-content ol ul{
+    font-size: 0.9em;
+}
+
+.article-content ul{
+    font-size: 1em;
+}
+
 .article-info {
     font-size: 1.1em;
     margin: 10px 0px;
