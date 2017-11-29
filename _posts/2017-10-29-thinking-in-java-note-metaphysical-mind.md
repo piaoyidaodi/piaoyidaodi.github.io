@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "《Java编程思想》笔记--玄学思想"
+title: "Java编程思想--玄学思想"
 categories: Thinking-In-Java-Note
 tag: Core-Java
 ---

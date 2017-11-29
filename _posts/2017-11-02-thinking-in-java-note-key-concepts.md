@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "《Java编程思想》笔记--关键概念"
+title: "Java编程思想--关键概念"
 categories: Thinking-In-Java-Note
 tag: Core-Java
 ---
