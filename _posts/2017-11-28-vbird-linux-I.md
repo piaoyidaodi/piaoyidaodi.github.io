@@ -57,6 +57,7 @@ tag: Linux-Note
 5. 对于目录，如果只有r而没有x权限，则无法进入。
 
 #### 6.2 属性和权限更改
+
 1. 更改组所属：chgrp [-R] group dirname/filename；（目录加上-R 进行递归更改权限）。
 
 2. 更改文件所有者：chown [-R] owner dirname/filename；
@@ -227,6 +228,7 @@ tag: Linux-Note
 4. linux VFS(Virtual Filesystem Switch)，通过VFS读取filesystem，VFS自动识别文件系统并读取需求文件。
 
 #### 8.4 文件系统简单操作
+
 1. `df`显示出文件系统的整体磁盘使用量；`du`评估文件系统的磁盘使用量。
 - `df [-ahikHTm] 目录或文件`。`-h`以人们易阅读的格式显示；`-i`不用硬盘容量，用inode数量显示。
 - `du [-ahskm] 文件或目录`。`-h`易阅读；`-s`列出总量，而不列出每个个别的目录占用容量。
