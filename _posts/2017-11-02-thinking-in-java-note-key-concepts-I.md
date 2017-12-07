@@ -56,13 +56,138 @@ tag: Core-Java
 #### 3.5 对象创建过程（假设有一个`Dog`类继承于`Animal`类）：
 
 1. 首次创建类型为`Dog`的对象时（构造器可以看做`static`方法），或者`Dog`类的静态方法/静态域首次被访问时，`Java`解释器必须查找类路径，以定位`Dog.class`文件。
+
 2. 然后载入`Dog.class`，有关静态初始化的所有动作都会执行。**静态初始化只在Class对象首次加载时进行一次**。
+
 3. 当用`new Dog()`创建对象时，首先将在堆上为`Dog`对象分配足够的存储空间。
+
 4. **存储空间会被清零**，此时`Dog`对象内所有的**基本类型设为默认值，引用则被设置成了`null`**。
+
 5. 此时依据1-4步，执行`Animal`父类的初始化
+
 6. **按照声明的顺序执行所有出现于字段定义处的初始化动作**。
+
 7. 执行`Animal`的构造器。
+
 8. 依据6-7步，执行`Dog`对象的构造器。
+
+#### 3.6 举个初始化的例子：
+
+  ```java
+public class Test extends Base {
+    static int flag=5;
+    static {
+        System.out.println("flag is :::"+flag);
+    }
+    int r=10;
+    Test(){
+        System.out.println("Test init...");
+        System.out.println("init the "+(flag++)+" time");
+        echo();
+        System.out.println("Test finish init...");
+        System.out.println();
+    }
+
+    public void echo(){
+        System.out.println("---Test Echo---");
+        System.out.println("Test r is : "+r);
+    }
+
+    public static void main(String[] args){
+        new Test();
+    }
+}
+class Base{
+    static int r=5;
+    static int baseFlag=1;
+    int i1=100;
+    static {
+        System.out.println("r is :::"+r);
+        System.out.println("--分割线1--");
+    }
+    static Test test=new Test();
+    static int i2=5;
+    static {
+        System.out.println("--分割线2--");
+    }
+    Base(){
+        System.out.println("Base init...");
+        System.out.println("init the "+(baseFlag++)+" time");
+        System.out.println("the static i is "+ i2);
+        System.out.println("the dynamic i is "+ i1);
+        echo();
+        System.out.println("Base finish init...");
+        System.out.println();
+    }
+    public void echo(){
+        System.out.println("---Base Echo---");
+        System.out.println("Base r is : "+r);
+    }
+}
+  ```
+
+  > 结果如下：
+
+    1.    r is :::5
+    2.    --分割线1--
+    3.    Base init...
+    4.    init the 1 time
+    5.    the static i is 0
+    6.    the dynamic i is 100
+    7.    ---Test Echo---
+    8.    Test r is : 0
+    9.    Base finish init...
+    10.
+    11.   Test init...
+    12.   init the 0 time
+    13.   ---Test Echo---
+    14.   Test r is : 10
+    15.   Test finish init...
+    16.
+    17.   --分割线2--
+    18.   flag is :::5
+    19.   Base init...
+    20.   init the 2 time
+    21.   the static i is 5
+    22.   the dynamic i is 100
+    23.   ---Test Echo---
+    24.   Test r is : 0
+    25.   Base finish init...
+    26.
+    27.   Test init...
+    28.   init the 5 time
+    29.   ---Test Echo---
+    30.   Test r is : 10
+    31.   Test finish init...
+
+解释如下，运行环境`Java 1.8`：
+
+1. `main()`中首次执行`new Test()`，虚拟机查找`Test`类路径并确定`Test`类，为`Test`类**静态字段**分配空间，同时完成自动初始化（内存置零）。
+2. 此时发现`Test`继承了`Base`，虚拟机查找`Base`类路径并确定`Base`类，为`Base`类**静态字段**分配空间，同时完成自动初始化（内存置零）。
+
+3. 按照**静态域**的声明顺序初始化，即`r = 5 , baseFlag = 1`，**`i2`**此时仍未初始化值为**`0`**，输出第1-2行。
+
+4. 此时`Base()`中声明**静态对象`new Test()`**，由于`Test`和`Base`类已经加载，此时的`new Test()`产生的对象**认为`Test`和`Base`的静态域已完成加载和初始化（其实并没有完成初始化，只是完成了自动初始化）**。
+
+5. 因此先为`Test`的**非静态字段**分配空间，同时完成自动初始化（内存置零），再为`Base`类**非静态字段**分配空间，同时完成自动初始化（内存置零）。
+
+6. 然后为`Base`中的**非静态字段**完成初始化，即`i1 = 100`。
+
+7. 接着执行`Base`的构造器初始化，输出第3-6行；此时遇到`echo()`函数，由于**多态**调用了`Test`类中的`echo()`函数，此时`Test`对象的非静态域**只完成了自动初始化**即`r = 0`，输出7-8行后返回`Base`中执行打印出9-10行，完成`Base`的构造器初始化。
+
+8. 接着执行`Test`中的**非静态字段**完成初始化，即`r = 10`；后执行`Test`的构造器初始化，输出第11-16行。**静态Test对象**完成初始化。注意其中`flag`只完成了自动初始化，所以为`0`。
+
+9. 此时，继续`Base()`中声明**静态Test对象**的初始化，接着`i2`被初始化即`i2 = 5`，打出17行。**`Base`的静态域完成初始化`**。
+
+10. **接着执行`Test`的静态域初始化**，即`flag = 5`，打印出第18行。
+
+11. **此时`Test`和`Base`的静态域初始化已完全结束**。
+
+12. 执行`Test`和`Base`的**非静态域初始化**，即第5-6步；接着执行`Base`的构造器初始化，输出第19-22行；此时遇到`echo()`函数，由于**多态**调用了`Test`类中的`echo()`函数，此时`Test`对象的非静态域**只完成了自动初始化**即`r = 0`，输出23-24行后返回`Base`中执行打印出25-26行，完成`Base`的构造器初始化。
+
+13. 接着执行`Test`中的**非静态字段**完成初始化，即`r = 10`；后执行`Test`的构造器初始化，输出第27-31行。**`main()`中的Test对象**完成初始化。
+
+14. 所有代码运行完毕，并返回。
 
 ### 4. 组合和继承
 
