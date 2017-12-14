@@ -4,7 +4,7 @@ title: "Head First Servlets and JSP -- I"
 categories: Servlet & JSP
 tag: Java-Web
 ---
-> `Servlet & JSP`基础，概述、Web应用体系结构、MVC入门、Servlet的请求和响应、Web应用的属性和监听者等。
+> `Servlet & JSP`基础，概述、Web应用体系结构、MVC入门、Servlet的请求和响应等。
 
 ### 1. 前言与概述
 
@@ -12,7 +12,7 @@ tag: Java-Web
 
 1. TCP负责确保文件完整的达到目的地，IP负责路由数据到目的地。
 
-2. HTML是HTTP响应的一部分。
+2. HTML是HTTP响应的一部分，**HTTP是无状态连接**。
 
 3. HTTP请求常用`GET`和`POST`方法，此外还包括不常用的方法如`HEAD、TRACE、PUT、DELETE、OPTION和CONNECT`方法。
 
@@ -266,111 +266,3 @@ public class Ch2Servlet extends HttpServlet {
 3. 请求分派在**服务器**中完成。
 
 4. 当请求到达服务器/容器；servlet决定这个请求应当交给Web应用的另一部分；servlet调用`request.getRequestDispathcer("result.jsp")`；浏览器正确响应请求，浏览器地址栏没有变化。
-
-### 5. Web应用
-
-#### 5.1 配置文件示例
-
-  ``` xml
-<servlet>
-  <init-param>
-    <param-name>DriftEmail</param-name>
-    <param-value>piaoyidaodi@gmail.com</param-value>
-  </init-param>
-</servlet>
-<context-param>
-  <param-name>GeGeEmail</param-name>
-  <param-value>piaoyidaodi@gmail.com</param-value>
-</context-param>
-<listener>
-  <listener-class>com.example.MyServletContextListener</listener-class>
-</listener>
-  ```
-  ``` java
-    // ServletConfig
-    out.println(getServletConfig().getInitParameter("DriftEmail"));
-    // ServletContext
-    out.println(getServletContext().getInitParameter("DriftEmail"));
-  ```
-
-#### 5.2 ServletConfig
-
-1. 容器初始化一个servlet时，会为这个servlet建一个**唯一的`ServletConfig`**，容器从配置描述文件**读出servlet初始化参数**，并把这些参数交给`ServletConfig`对象，然后把`ServletConfig`对象传递给servlet的`init()`方法。
-
-2. servlet初始化参数只在`init()`时调用一次：
-- servlet读取部署描述文件，包括servlet初始化参数；
-- 容器为servlet创建一个ServletConfig实例；
-- 容器为servlet初始化参数创建String键值对；
-- 容器向ServletConfig提供键值对初始化参数的引用；
-- 容器创建servlet类的一个实例；
-- 容器调用servlet的`init()`方法，传入`ServletConfig`引用。
-
-3. `ServletConfig`主要用于提供初始化参数。
-
-4. 通过设置请求对象属性`request.setAttribute("styles",result)`，得到请求的任何其他servlet或接收转发请求的JSP都可以使用这些属性。
-
-#### 5.3 ServletContext
-
-1. 应用中**所有的`servlet`和`JSP`**都自动能访问上下文初始化参数。
-
-2. 在分布式环境中，每个JVM都有一个`ServletContext`。
-
-3. `ServletContext`的作用范围更大，最常见的用途可能是存储数据库查找名。`ServletContext`是`JSP`或`servlet`与容器及Web应用其他部分的一个连接。
-
-4. 可以把`ServletConfig`和`ServletContext`初始化参数认为是部署时常量，运行时只能获得不能设置。
-
-5. `ServletContext`的获取：
-- 直接调用`getServletContext()`方法。
-- `ServletConfig`拥有该servlet的`ServletContext`引用，只有在servlet类没有扩展**`GenericServlet`及其子类**时，才会使用这种方式。
-
-#### 5.4 `ServletContextListener`监听器
-
-1. 监听器唯一的用途就是**初始化应用**。通过`web.xml`部署监听器描述，容器通过检查类注意到监听器接口或多个接口，以此明确监听什么类型的事件。
-
-2. `ServletContextListener`监听`ServletContext`最关键的两个事件：创建和撤销。监听器类
-
-3. 要监听`ServletContext`事件，需要编写一个实现`ServletContextListener`的监听器类（实现其中的`contextInitialized()`和`contextDestroyed()`方法），把它放在`WEB-INF/classes`目录中，并在`web.xml`中放置`<listener>`元素告诉容器。
-
-4. `ServletContext`的`getAttribute()`方法返回类型为`Object`，需要对结果强制类型转换。`getInitParameter()`方法返回值为`String`。
-
-5. `ServletContextListener`的工作流程：
-- 容器读取配置文件，包括`<listener>`和`<context-param>`元素。
-- 容器为该Web应用创建一个`ServletContext`对象。
-- 容器为每一个上下文初始化参数创建键值对，并将键值对的引用交给`ServletContext`对象。
-- 容器创建一个`ServletContextListener`类实例。
-- 容器调用监听者`contextInitialized()`方法，传入一个`ServletContextEvent`对象，通过该对象获取一个`ServletContext`引用，并得到上下文初始化参数。
-- 容器初始化某个对象，并放入`ServletContext`请求属性中。
-
-#### 5.5 常见监听器
-
-1. `javax.servlet.ServletContextAttributeListener`
-- **事件类型参数**：`ServletContextAttributeEvent`
-- **作用**：一个Web应用上下文中是否增加、删除或替换了一个属性。
-
-2. `javax.servlet.http.HttpSessionListener`
-- **事件类型参数**：`HttpSessionEvent`
-- **作用**：期望了解有多少个并发用户，即想跟踪活动的会话。
-
-3. `javax.servlet.ServletRequestListener`
-- **事件类型参数**：`ServletRequestEvent`
-- **作用**：监听每一次请求，以便建立日志记录。
-
-4. `javax.servlet.ServletRequestAttributeListener`
-- **事件类型参数**：`ServletRequestAttributeEvent`
-- **作用**：期望了解是否增加、删除或替换一个请求属性。
-
-5. `javax.servlet.HttpSessionBindingListener`
-- **事件类型参数**：`HttpSessionBindingEvent`
-- **作用**：拥有一个属性类（该类的对象将被放在一个属性中），期望了解该类型的实例是否被绑定或删除在一个会话中。
-
-6. `javax.servlet.HttpSessionAttributeListener`
-- **事件类型参数**：`HttpSessionBindingEvent`
-- **作用**：期望了解是否增加、删除或替换一个会话属性。
-
-7. `javax.servlet.ServletContextListener`
-- **事件类型参数**：`ServletContextEvent`
-- **作用**：监听是否创建或撤销了一个上下文。
-
-8. `javax.servlet.HttpSessionActivationListener`
-- **事件类型参数**：`HttpSessionEvent`
-- **作用**：拥有一个属性类，期望该类型实例所绑定的会话迁移到另一个JVM时得到通知。
