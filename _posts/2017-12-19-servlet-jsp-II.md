@@ -210,3 +210,48 @@ tag: Java-Web
 - 会话ID作为请求`URL`最后的额外信息再通过请求返回。
 - 如果客户不接受`cookie`，`URL`重写会自动发生，但是必须显示对`URL`编码。
 - 静态页面无法使用自动`URL`重写。
+
+#### 6.4 会话的销毁
+
+1. `HttpSession`方法：
+- `getAttribute()`，`setAttribute()`，`removeAttribute()`，`getCreationTime()`，`getLastAccessedTime()`。
+- `getMaxInactiveInterval()`：指定对于此会话客户请求的最大间隔时间（秒数）。
+- `invalidate()`：结束会话，并解除所有绑定属性。
+
+2. 会话死亡的三种方式：
+- 超时。
+- 在会话对象中使用`invalidate()`方法。
+- 应用结束（崩溃或取消部署）。
+
+3. 会话超时的设置方法：
+- 在配置文件中使用`<web-app><session-config><session-timeout>`设置（单位为分）。
+- 在会话中调用`session.setMaxInactiveInterval()`设置（单位为秒）。
+
+4. `cookie`的作用：
+- `cookie`实际就是客户和服务器之间交换的一小段键值对数据；服务器把`cookie`交给客户，客户再在请求中发回这个`cookie`。
+- 默认`cookie`在客户离开浏览器后删除，也可以设置让`cookie`活的更长。
+- 向响应增加一个`cookie`时，要传递一个**Cookie对象**。
+- `HttpServletRequest`：`getCookies()`。
+- `HttpServletResponse`：`addCookies()`，不存在`setCookies()`。
+
+#### 6.5 会话的生命周期事件
+
+1. 生命周期：（创建会话、撤销会话）
+- 事件：`HttpSessionEvent`
+- 监听器：`HttpSessionListener`
+
+2. 属性：（增、删、改一个属性）
+- 事件：`HttpSessionBindingEvent`
+- 监听器：`HttpSessionAttributeListener`
+
+3. 迁移：（会话准备钝化、会话已经激活）
+- 事件：`HttpSessionEvent`
+- 监听器：`HttpSessionActivationListener`
+
+4. 会话属性：（会话属性类绑定、会话属性类解绑）
+- 事件：`HttpSessionBindingEvent`
+- 监听器：属性类实现`HttpSessionBindingListener`
+
+5. 会话迁移（分布式多个VM）：
+- 多个VM，只有`HttpSession`对象及其属性会从一个VM**移动到**另一个VM。
+- 对于Web应用的一个给定的会话ID，不论应用分布在多少个VM上，**只有一个`HttpSession`对象**。
