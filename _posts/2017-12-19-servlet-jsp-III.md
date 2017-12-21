@@ -91,4 +91,49 @@ tag: Java-Web
 
 9. JSP禁用EL：配置文件中使用`<web-app><jsp-config><el-ignored>`；使用`<%@ page isELIgnored="true" %>`。
 
+#### 7.4 page, request, session, application作用域
+
+1. page作用域：
+- jsp默认的作用域是page（页面作用域），这个作用域中的对象只能在该页面中使用，不允许在其他页面使用，即只要页面发生跳转就会消失。我们可以通过调用pageContext这个隐含的对象的getAttribute()和setAttribute()方法去获取和设置需要传递、共享具有这种范围类型的数据。（pageContext对象还提供了访问其他范围对象的getAttribute方法）。
+- page范围内的对象，在客户端每次请求JSP页面时创建，在页面向客户端发送回响应或请求被转发（forward）到其他的资源后被删除。
+
+2. request作用域：
+- request（请求作用域）作用于，从HTTP请求到服务器处理结束返回响应的整个过程。要注意的是，因为每一个客户请求都是不同的，所以对于每一个新的请求（刷新页面也算），都要重新创建和删除这个范围内的对象。
+
+3. session作用域：
+- session（会话作用域）的对象作用于浏览器打开到浏览器关闭发出的所有请求。Session的作用范围为用户和服务器持续连接的一段时间，但与服务器断线，这个属性就无效。
+- 当浏览器发出第一个请求时，就认为session的作用时间已经开始了，但是它的结束时间还是不太好判断，所以我们可以类似于处理“系统响应超时”这种情况的方法，设置：如果一定的时间内客户端没有反应，则认为会话结束。Tomcat的默认值为120分钟，但这个值也可以通过HttpSession的setMaxInactiveInterval()方法来设置最大时长。
+
+4. application作用域：
+- application（应用程序作用域）中的对象作用于整个应用程序，从服务器一开始执行服务，一直到服务器关闭为止。从这看来，application的作用范围最广，作用的时间也最长。所以使用时要特别注意不然可能会造成服务器负载越来越重的情况。
+
+> 注意：根据jsp规范，用于某个对象的名称必须在所有作用域中都是唯一的。也就是说，如果application作用域中有一个名为user的对象，而且在request作用域中用相同的名称保存着另一个对象，那么容器可能会移除第一个对象，尽管很少有容器会执行这项规则，但是为了使您的项目更加完善，还是应该确保在任何地方都是用唯一的名称，除非所保存的对象为同一个。
+
 ### 8. 无脚本页面
+
+#### 8.1 JavaBean标准动作
+
+1. 使用`<jsp:useBean>`声明和初始化一个bean属性，`<jsp:getProperty>`得到bean属性的性质值，`<jsp:setProperty>`设置bean属性的性质值。
+
+2. `<jsp:useBean id="person" type="foo.Person" class="foo.Employee" scope="request" />`
+- id对应servlet中的名`req.setAttribute("person",p)`；type接口类、抽象类等引用类类型；class实例化类类型；scope标识属性作用域，默认为page。
+- 如果标签中找不到对应为person的属性，就会创建一个新的。
+- 如果只有type而没有class，则page作用域内的bean必须已经存在，即person属性必须存在；使用class，则class不能为抽象类，且有无参公共构造器。
+
+3. `<jsp:getProperty name="person" property="name" />`
+- name对应id；property标识属性中的性质名，Person类中的定义。
+
+4. `<jsp:setProperty name="person" property="name" value="Jon" />`
+
+5. `<jsp:useBean><jsp:setProperty /></jsp:useBean>`体
+- 使用`<jsp:useBean>`体可有条件的运行代码，只有找不到对应bean属性而创建一个新bean时才会运行体中的代码。
+
+6. 请求直接到JSP，使用param属性：
+- `<jsp:setProperty name="person" property="name" param="userName">`
+- 如果让请求的参数名与bean性质名全部匹配，可取消param属性，property为*。
+
+7. Bean标记会自动转换String和基本类型的性质，如setProperty()。如果在标记中使用JSP脚本，则不会完成自动转换。
+
+#### 8.2 表达式语言
+
+1. 解决想获取属性的性质的性质的问题。
