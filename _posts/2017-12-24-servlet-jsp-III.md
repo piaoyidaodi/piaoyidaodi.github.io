@@ -134,6 +134,23 @@ tag: Java-Web
 
 7. Bean标记会自动转换String和基本类型的性质，如setProperty()。如果在标记中使用JSP脚本，则不会完成自动转换。
 
-#### 8.2 表达式语言
+#### 8.2 表达式语言（EL）
 
-1. 解决想获取属性的性质的性质的问题。
+1. EL语法格式：`${first.second}`，解决想获取属性的嵌套性质，即性质的性质的问题。
+
+2. `first`可以是一个**EL隐式对象**，也可以是一个**属性**。
+- **EL隐式对象**：(pageScope, requestScope, sessionScope, applicationScope)作用域属性的Map；(param, paramValues)请求参数Map；(header, headerValues)请求首部的Map；cookie；(initParam)上下文初始化参数；pageContext（唯一一个非Map，而是pageContext实际引用）。
+- **属性**：页面作用域、请求作用域、会话作用域、应用作用域的属性。
+
+3. `.`访问符。
+- `.`的左边必须为**Map或bean**。
+- `.`的右边必须遵循Java的命名规范。
+
+4. `[]`访问符。
+- `[]`的左边可以为**Map, bean, List或数组**。
+- `[]`中是String直接量（即**用引号引的串**），可以是一个Map键，或一个bean性质，还可以是List或数组中的索引。
+- `[]`中**数组和List**的String索引会强制转换为int。
+- **如果`[]`中没有引号，则容器会计算`[]`中的内容，搜索与该名字绑定的属性，并替换为这个属性值（如果有一个同名的隐式对象，那么总使用隐式对象）**。
+- 如servlet中`req.setAttribute("Genre","Ambient");`则JSP中`Music is ${musicMap[Genre]}`解析为`Music is ${musicMap["Ambient"]}`。
+
+5. `requestScope`等作用域映射不是真正的对象。使用`requestScope`作用域得到的是请求属性，而不是request性质，通过**pageContext**获取性质。
