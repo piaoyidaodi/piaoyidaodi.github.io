@@ -4,7 +4,7 @@ title: "Head First Servlets and JSP -- III"
 categories: Servlet & JSP
 tag: Java-Web
 ---
-> `Servlet & JSP`基础，JSP基础等。
+> `Servlet & JSP`基础，JSP基础，EL基础等。
 
 ### 7. JSP
 
@@ -154,3 +154,39 @@ tag: Java-Web
 - 如servlet中`req.setAttribute("Genre","Ambient");`则JSP中`Music is ${musicMap[Genre]}`解析为`Music is ${musicMap["Ambient"]}`。
 
 5. `requestScope`等作用域映射不是真正的对象。使用`requestScope`作用域得到的是请求属性，而不是request性质，通过**pageContext**获取性质。
+
+6. 作用域隐式对象的作用：
+- 防止命名冲突。
+- request的属性名为一个String，可能不遵守Java命名规范，使用作用域对象，可以使用`[]`操作属性名。
+
+7. Cookie和初始化参数：
+- `${cookie.userName.value}`
+- `${initParam.mainEmail}`
+
+#### 8.3 EL中的函数和操作符
+
+1. EL中的函数
+- 编写有一个公共静态方法的Java类，将类文件放入/WEB-INF/classes目录中。
+- 编写一个编辑库描述文件（TLD）。TLD提供了定义函数的Java类与调用函数的JSP之间的映射。TLD文件放在/WEB-INF目录中，扩展名为.tld。
+- 在JSP中放一个taglib指令，定义前缀。
+- 使用EL调用函数。按照`${prefix:name()}`的形式调用函数。
+
+2. 在算术表达式中，EL把null值看做是0；在逻辑表达式中，EL把null值看做是false。
+
+3. 要在JSP中使用函数，必须使用taglib指令声明一个命名空间。在taglib指令中放一个prefix属性，告诉容器要调用的函数在哪个TLD中可以找到，如`<%@ taglib prefix="mine" uri="/WEB-INF/foo.tld" %>`。
+
+#### 8.4 布局模板
+
+1. `include`指令：在转换时发生
+- 在转换前把代码复制到每个JSP中，再编译为生成的servlet。
+
+2. `<jsp:include>`标准动作：在运行时发生
+- include标准动作在运行时插入“插入段”的响应。
+- 该动作的关键是，容器要根据页面（page）属性创建一个RequestDispatcher，并应用include()方法。所分派/包含的JSP针对同样的请求和响应对象执行，且在同一个线程中运行。
+- 容器代码看到include标准动作，并在所生成的servlet代码中插入一个方法调用，这会在运行时动态的将页面响应相合并。
+
+3. `<jsp:forward>`发生转发时，缓冲区会在转发之前清空。
+
+4. `<jsp:param>`定制包含的内容，只能用在`<jsp:include>`或`<jsp:forward>`标准动作中。
+
+### 9. JSP标准标签库（JSTL）
