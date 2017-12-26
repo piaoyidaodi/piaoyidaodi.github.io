@@ -21,7 +21,7 @@ tag: Java-Web
 2. JSP指令（一共3个）：`<%@ ... %>`
 - page指令语法：`<%@ page import="java.util.*" session="false" %>`，定义页面特定的属性。
 - page的属性共13个，其中前6个为重点**import, isThreadSafe, isErrorPage, errorPage, contentType, isELIgnored**, session, language, extends, buffer, autoFlush, info, pageEncoding。
-- taglib指令语法：`<%@ taglib tagdir="/WEB-INF/tags/cool" prefix="cool" %>`，定义JSP可使用的标记库。
+- taglib指令语法：`<%@ taglib tagdir="/WEB-INF/tags/cool" prefix="cool" %>`，定义JSP可使用的标签库。
 - include指令语法：`<%@ include file="wickedHeader.html" %>`，定义在转换时增加到当前页面的文本和代码。
 - **指令语法后没有分号**。
 
@@ -132,7 +132,7 @@ tag: Java-Web
 - `<jsp:setProperty name="person" property="name" param="userName">`
 - 如果让请求的参数名与bean性质名全部匹配，可取消param属性，property为*。
 
-7. Bean标记会自动转换String和基本类型的性质，如setProperty()。如果在标记中使用JSP脚本，则不会完成自动转换。
+7. Bean标签会自动转换String和基本类型的性质，如setProperty()。如果在标签中使用JSP脚本，则不会完成自动转换。
 
 #### 8.2 表达式语言（EL）
 
@@ -190,3 +190,44 @@ tag: Java-Web
 4. `<jsp:param>`定制包含的内容，只能用在`<jsp:include>`或`<jsp:forward>`标准动作中。
 
 ### 9. JSP标准标签库（JSTL）
+
+1. `<c:out value="" >`标签：
+- 使用`escapeXml`属性，设置为`true`时，所有XML都转换为浏览器可呈现的形式。其中`<`转换为`&lt`，`>`转换为`&gt`，`&`转换为`&amp`，`'`转换为`&#039`，`"`转换为`&#034`。
+- 使用EL输出用户录入的串，可能会导致跨网站脚本攻击。
+- 使用`default`属性，若value计算为null时，希望打印的值。
+
+2. `<c:forEach>`标签：
+- 迭代处理数组，集合，Map，逗号分隔的String。
+- `<%@ tablib profix="c" uri="http:java.sun.com/jsp/jstl/core" %>`
+- `<c:forEach var="movie" items="${movieList}">${movie}</c:forEach>`
+- forEach标签可以互相嵌套，var的作用域仅限于标签内部。
+- 前缀c只是一个标准约定，用来表示JSTL中一组core标签。
+
+3. `<c:if>`标签：
+- `<c:if test="${userType eq 'member'}">doSomething</c:if>`
+- 标签和EL中单引号和双引号都可以使用。
+
+4. `<c:choose>`标签和同伴`<c:when>``<c:otherwise>`
+- 如果`<c:when>`中的测试都不为ture，`<c:otherwise>`就会默认选择运行。
+- `<c:choose><c:when></c:when><c:otherwise></c:otherwise></c:choose>`
+
+5. `<c:set>`标签：
+- 有var和target两种设置。**var**用于设置属性变量，**target**用于设置bean和Map，这两个版本都有有体和没有体两种形式。
+- var版本：没有体形式**如果value的值计算为null，则该变量会被删除**；有体形式**体会被计算为变量的值**。
+- target版本：没有体形式**target必须计算为一个Map或bean，若为null或非Map和bean则容器抛出异常**；有体形式**体会被计算为对象性质的设定值**。target的值应当为EL表达式或一个脚本表达式或`<jsp:attribute>`。
+- `<c:set>`中不能同时又var和target属性。
+- scope是可选的属性，默认为页面（page）作用域。
+- **var所指定的属性不存在，当且仅当value不为null时，才会创建新属性**。
+
+6. `<c:remove>`标签：
+- `<c:remove var="" scope="">`
+- var属性必须是一个String直接量，不能是表达式；scope是可选的，如果未指定则会从所有作用域删除这个属性。
+
+7. `<c:import>`标签：
+- include指令使用file，`<jsp:include>`使用page，`<c:import>`使用url。前两种机制不能超出当前容器范围，`<c:import>`则可以。
+- `<c:param name="" value="">`包含对被包含部分的传入参数。
+
+8. `<c:url>`标签，对URL重写：
+- `<c:url value='/XXX.jsp'>`，如果禁用了cookie会在value后增加jsessionid。
+- URL通常需要编码，把不安全的字符替代为其他字符，然后再在服务器端完成解码。
+- `<c:url value=""><c:param name="" value=""/></c:url>`完成对url的编码。
