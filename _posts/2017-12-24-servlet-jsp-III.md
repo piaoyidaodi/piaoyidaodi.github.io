@@ -4,7 +4,7 @@ title: "Head First Servlets and JSP -- III"
 categories: Servlet & JSP
 tag: Java-Web
 ---
-> `Servlet & JSP`基础，JSP基础，EL基础等。
+> `Servlet & JSP`基础，JSP基础，EL基础等，JSTL基础等。
 
 ### 7. JSP
 
@@ -191,6 +191,8 @@ tag: Java-Web
 
 ### 9. JSP标准标签库（JSTL）
 
+#### 9.1 标准标签库
+
 1. `<c:out value="" >`标签：
 - 使用`escapeXml`属性，设置为`true`时，所有XML都转换为浏览器可呈现的形式。其中`<`转换为`&lt`，`>`转换为`&gt`，`&`转换为`&amp`，`'`转换为`&#039`，`"`转换为`&#034`。
 - 使用EL输出用户录入的串，可能会导致跨网站脚本攻击。
@@ -231,3 +233,29 @@ tag: Java-Web
 - `<c:url value='/XXX.jsp'>`，如果禁用了cookie会在value后增加jsessionid。
 - URL通常需要编码，把不安全的字符替代为其他字符，然后再在服务器端完成解码。
 - `<c:url value=""><c:param name="" value=""/></c:url>`完成对url的编码。
+
+9. 在配置文件中配置错误页面：
+- 普通型错误页面：`<exception-type>java.lang.Throwable</exception-type>`。
+- 明确异常错误页面：`<exception-type>java.lang.XXException</exception-type>`。
+- HTTP状态码错误页面：`<error-code>java.lang.XXException</error-code>`。
+
+10. 错误页面实际就是一个处理异常的JSP，所以容器为这个页面提供了一个额外的exception对象。
+
+11. `<c:catch>`标签，同时作为try/catch部分：
+- 把有风险的EL或标签调用包在`<c:catch>`标签中，异常将被捕获。
+- 在`<c:catch>`标签中使用var属性，它会把异常对象放在页面作用域，并按声明的var命名。标签体内无法使用有关异常的任何信息。
+- `<c:catch>`的工作方式与try一样，出现异常后，`<c:catch>`体中余下的部分不再运行。
+
+#### 9.2 标签库描述文件（TLD）
+
+1. 创建标签库须知：
+- **标签名和语法**：标签名前缀、标签名；语法包括必要和可选的属性，标记是否有体，每个属性的类型以及属性是否可以是一个表达式。
+- **库URI**：URI是标签库描述文件的唯一标识符，容器需要这个信息将JSP中使用的标签名映射到实际调用的Java代码。
+
+2. TLD描述了两个主要内容：定制标签和EL函数。
+
+3. 容器会在4个位置查找TLD：
+- 直接在WEB-INF目录中查找。
+- 直接在WEB-INF的子目录中查找。
+- 在WEB-INF/lib下的一个JAR文件中的META-INF目录中查找。
+- 在WEB-INF/lib下的一个JAR文件中的META-INF目录的子目录中查找。
