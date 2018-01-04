@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Head First Servlets and JSP -- I"
-categories: Servlet & JSP
+categories: Servlet&JSP
 tag: Java-Web
 ---
 > `Servlet & JSP`基础，概述、Web应用体系结构、MVC入门、Servlet的请求和响应等。

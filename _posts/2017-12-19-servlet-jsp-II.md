@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Head First Servlets and JSP -- II"
-categories: Servlet & JSP
+categories: Servlet&JSP
 tag: Java-Web
 ---
 > `Servlet & JSP`基础，Web应用的属性和监听者、会话状态等。

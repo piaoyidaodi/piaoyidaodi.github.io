@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Head First Servlets and JSP -- III"
-categories: Servlet & JSP
+categories: Servlet&JSP
 tag: Java-Web
 ---
 > `Servlet & JSP`基础，JSP基础，EL基础等，JSTL基础等。
