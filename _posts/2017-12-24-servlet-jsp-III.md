@@ -248,13 +248,46 @@ tag: Java-Web
 
 #### 9.2 标签库描述文件（TLD）
 
-1. 创建标签库须知：
+1. 示例代码
+    ```xml
+    <taglib ...>
+    ...
+    <uri>randomThings</uri>
+    <tag>
+        <description>random advice</description>
+        <name>advice</name>
+        <tag-class>foo.AdvisorTagHandler</tag-class>
+        <body-content>empty<body-content>
+        <attribute>
+            <name>user</name>
+            <required>true</required>
+            <rtexprvalue>true</rtexprvalue>
+        </attribute>
+    </tag>
+    ```
+    ```html
+    <html><body>
+    <%@ taglib prefix="mine" uri="randomThings %>
+    <mine:advice user="${userName}"/>
+    </html></body>
+    ```
+
+2. 创建标签库须知：
 - **标签名和语法**：标签名前缀、标签名；语法包括必要和可选的属性，标记是否有体，每个属性的类型以及属性是否可以是一个表达式。
 - **库URI**：URI是标签库描述文件的唯一标识符，容器需要这个信息将JSP中使用的标签名映射到实际调用的Java代码。
 
-2. TLD描述了两个主要内容：定制标签和EL函数。
+3. TLD描述了两个主要内容：定制标签和EL函数。
 
-3. 容器会在4个位置查找TLD：
+4. 标记处理器：可以扩展**SimpleTagSupport**，并实现`doTag()`方法以完成具体工作，`setUser()`方法接收属性设置。
+
+5. `<rtexprvalue>`标签非常重要，因为他会告诉你的属性的值是在转换时计算还是在运行时计算，如果未定义或设置为false，则属性值只能是String直接量。
+
+6. 如果TLD中的标记配置为`<body-content>empty</body-content>`，采用以下三种方法调用标记：
+- 空标记：`<mine:advice user="${userName}">`
+- 开始和结束标记之间无内容的标记：`<mine:advice user="${userName}"></mine:advice>`
+- 开始结束标记之间只有`<jsp:attribute>`标记：`<mine:advice><jsp:attribute name="user">${userName}</jsp:attribute></mine:advice>`
+
+4. 容器会在4个位置查找TLD：
 - 直接在WEB-INF目录中查找。
 - 直接在WEB-INF的子目录中查找。
 - 在WEB-INF/lib下的一个JAR文件中的META-INF目录中查找。
