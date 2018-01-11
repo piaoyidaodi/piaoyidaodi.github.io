@@ -287,7 +287,9 @@ tag: Java-Web
 - 开始和结束标记之间无内容的标记：`<mine:advice user="${userName}"></mine:advice>`
 - 开始结束标记之间只有`<jsp:attribute>`标记：`<mine:advice><jsp:attribute name="user">${userName}</jsp:attribute></mine:advice>`
 
-4. 容器会在4个位置查找TLD：
+7. `taglib<uri>`是标记库的唯一名，不表示任何具体的位置；TLD中的`<uri>`需要与taglib中的uri相匹配的。
+
+8. 容器会在4个位置查找TLD：
 - 直接在WEB-INF目录中查找。
 - 直接在WEB-INF的子目录中查找。
 - 在WEB-INF/lib下的一个JAR文件中的META-INF目录中查找。
