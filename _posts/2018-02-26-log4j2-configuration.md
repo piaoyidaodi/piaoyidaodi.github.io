@@ -1,10 +1,10 @@
 ---
 layout: post
-title: "Log4j2 -- II"
+title: "Log4j2 -- Configuration"
 categories: Log4j2
 tag: Java-Libs
 ---
-> `Log4j2-v2.10.0-User's Gudie`
+> `Log4j2-v2.10.0-User's Guide`
 
 ## 4. 配置
 
