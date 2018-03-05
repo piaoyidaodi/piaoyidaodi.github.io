@@ -657,4 +657,138 @@ NoSQLAppender使用内部轻量级提供程序接口将日志事件写入NoSQL�
 
 MongoDBProvider的参数如下所示：
 
+- `collectionName，String`：**必需**。要插入事件的MongoDB集合的名称。
+- `writeConcernConstant，Field`：默认情况下，MongoDB provider使用指令com.mongodb.WriteConcern.ACKNOWLEDGED插入日志记录。使用此可选属性指定除ACKNOWLEDGED以外的常量的名称。
+- `writeConcernConstantClass，Class`：如果指定writeConcernConstant，你可以使用这个属性来指定不同于com.mongodb.WriteConcern的类以找到（创建自己的定制指令）的常数。
+- `factoryClassName，Class`：要提供到MongoDB数据库的连接，可以使用此属性和factoryMethodName以指定获取连接的类和静态方法。该方法必须返回一个com.mongodb.DB或一个com.mongodb.MongoClient。如果DB未通过身份验证，则还必须指定username和password。如果使用工厂方法提供连接，则不得指定databaseName，server或port属性。
+- `factoryMethodName，Method`：请参阅属性factoryClassName。
+- `databaseName，String`：如果您未指定用于提供MongoDB连接的factoryClassName和factoryMethodName，则必须使用此属性指定MongoDB数据库名称。您还必须指定username和password。您也可以选择指定一个server（默认为localhost）和一个port（默认为默认的MongoDB端口）。
+- `server，String`：请参阅databaseName属性的文档。
+- `port，int`：请参阅databaseName属性的文档。
+- `username，String`：请参阅databaseName和factoryClassName属性的文档。
+- `password，String`：请参阅databaseName和factoryClassName属性的文档。
+- `capped，boolean`：启用对capped collection的支持。
+- `collectionSize，int`：指定启用时使用的capped collection的字节大小。最小为4096字节，最大将增加到接近256的整数倍。
+
 CouchDBProvider的参数如下所示：
+
+factoryClassName类要提供到CouchDB数据库的连接，可以使用此属性和factoryMethodName来指定从中获取连接的类和静态方法。 该方法必须返回org.lightcouch.CouchDbClient或org.lightcouch.CouchDbProperties。 如果使用工厂方法提供连接，则不得指定数据库名称，协议，服务器，端口，用户名或密码属性。
+factoryMethodName方法请参阅属性factoryClassName的文档。
+databaseName字符串如果您未指定用于提供CouchDB连接的factoryClassName和factoryMethodName，则必须使用此属性指定CouchDB数据库名称。 您还必须指定用户名和密码。 您也可以选择指定协议（默认为http），服务器（默认为localhost）和端口（http默认为80，https默认为443）。
+协议字符串必须是“http”或“https”。 请参阅属性databaseName的文档。
+- `factoryClassName，Class`：要提供到CouchDB数据库的连接，可以使用此属性和factoryMethodName以指定获取连接的类和静态方法。该方法必须返回一个org.lightcouch.CouchDbClient或org.lightcouch.CouchDbProperties。如果使用工厂方法提供连接，则不得指定databaseName，protocol，server，port，username或password属性。
+- `factoryMethodName，Method`：请参阅属性factoryClassName。
+- `databaseName，String`：如果您未指定用于提供CouchDB连接的factoryClassName和factoryMethodName，则必须使用此属性指定CouchDB数据库名称。您还必须指定username和password。您也可以选择指定一个protocol（默认为http），server（默认为localhost）和一个port（http默认为80，https默认为443）。
+- `protocol，String`：必需为http或https，请参阅databaseName属性的文档。
+- `server，String`：请参阅databaseName属性的文档。
+- `port，int`：请参阅databaseName属性的文档。
+- `username，String`：请参阅databaseName和factoryClassName属性的文档。
+- `password，String`：请参阅databaseName和factoryClassName属性的文档。
+
+NoSQLAppender的一些示例如下所示：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="error">
+  <Appenders>
+    <NoSql name="databaseAppender">
+      <MongoDb databaseName="applicationDb" collectionName="applicationLog" server="mongo.example.org"
+               username="loggingUser" password="abc123" />
+    </NoSql>
+  </Appenders>
+  <Loggers>
+    <Root level="warn">
+      <AppenderRef ref="databaseAppender"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="error">
+  <Appenders>
+    <NoSql name="databaseAppender">
+      <MongoDb collectionName="applicationLog" factoryClassName="org.example.db.ConnectionFactory"
+               factoryMethodName="getNewMongoClient" />
+    </NoSql>
+  </Appenders>
+  <Loggers>
+    <Root level="warn">
+      <AppenderRef ref="databaseAppender"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="error">
+  <Appenders>
+    <NoSql name="databaseAppender">
+      <CouchDb databaseName="applicationDb" protocol="https" server="couch.example.org"
+               username="loggingUser" password="abc123" />
+    </NoSql>
+  </Appenders>
+  <Loggers>
+    <Root level="warn">
+      <AppenderRef ref="databaseAppender"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+下列示例表示，如果使用JSON格式，日志将如何放入NoSQL数据库中：
+
+```json
+{
+    "level": "WARN",
+    "loggerName": "com.example.application.MyClass",
+    "message": "Something happened that you might want to know about.",
+    "source": {
+        "className": "com.example.application.MyClass",
+        "methodName": "exampleMethod",
+        "fileName": "MyClass.java",
+        "lineNumber": 81
+    },
+    "marker": {
+        "name": "SomeMarker",
+        "parent" {
+            "name": "SomeParentMarker"
+        }
+    },
+    "threadName": "Thread-1",
+    "millis": 1368844166761,
+    "date": "2013-05-18T02:29:26.761Z",
+    "thrown": {
+        "type": "java.sql.SQLException",
+        "message": "Could not insert record. Connection lost.",
+        "stackTrace": [
+                { "className": "org.example.sql.driver.PreparedStatement$1", "methodName": "responder", "fileName": "PreparedStatement.java", "lineNumber": 1049 },
+                { "className": "org.example.sql.driver.PreparedStatement", "methodName": "executeUpdate", "fileName": "PreparedStatement.java", "lineNumber": 738 },
+                { "className": "com.example.application.MyClass", "methodName": "exampleMethod", "fileName": "MyClass.java", "lineNumber": 81 },
+                { "className": "com.example.application.MainClass", "methodName": "main", "fileName": "MainClass.java", "lineNumber": 52 }
+        ],
+        "cause": {
+            "type": "java.io.IOException",
+            "message": "Connection lost.",
+            "stackTrace": [
+                { "className": "java.nio.channels.SocketChannel", "methodName": "write", "fileName": null, "lineNumber": -1 },
+                { "className": "org.example.sql.driver.PreparedStatement$1", "methodName": "responder", "fileName": "PreparedStatement.java", "lineNumber": 1032 },
+                { "className": "org.example.sql.driver.PreparedStatement", "methodName": "executeUpdate", "fileName": "PreparedStatement.java", "lineNumber": 738 },
+                { "className": "com.example.application.MyClass", "methodName": "exampleMethod", "fileName": "MyClass.java", "lineNumber": 81 },
+                { "className": "com.example.application.MainClass", "methodName": "main", "fileName": "MainClass.java", "lineNumber": 52 }
+            ]
+        }
+    },
+    "contextMap": {
+        "ID": "86c3a497-4e67-4eed-9d6a-2e5797324d7b",
+        "username": "JohnDoe"
+    },
+    "contextStack": [
+        "topItem",
+        "anotherItem",
+        "bottomItem"
+    ]
+}
+```
