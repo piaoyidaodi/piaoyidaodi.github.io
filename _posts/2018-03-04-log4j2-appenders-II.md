@@ -216,6 +216,365 @@ CronTriggeringPolicy基于cron表达式触发rollover。参数如下所示：
 
 - minSize，long：文件必须rollover的最小大小。设置为0都会导致无论文件大小如何都将导致rollover。默认值为1，这将防止空文件rollover。
 
+**SizeBased Triggering Policy**
+
+一旦文件达到指定的大小，SizeBasedTriggeringPolicy将导致rollover。大小可以用字节指定，后缀为KB，MB或GB，例如20MB。
+
+**TimeBased Triggering Policy**
+
+一旦date/time模式不再适用于活动文件，TimeBasedTriggeringPolicy会导致rollover。该policy接受一个interval属性，该属性基于时间模式和modulate布尔属性，确定应该发生rollover的频率。TimeBasedTriggeringPolicy参数如下所示：
+
+- interval，integer：根据日期模式中最特定的时间单位进行rollover的频率。例如，使用小时数作为最特定项目的日期模式，并且每4小时发生4次rollover增量。默认值是1。
+- modulate，boolean：指示是否应该调整时间间隔以在间隔边界上发生下一次翻转。例如，如果项目是小时，当前时间是凌晨3点，间隔是4，那么第一次rollover将在凌晨4点发生，然后下面的会在上午8点，中午，下午4点等发生。
+- maxRandomDelay，integer：指示随机延迟rollover的最大秒数。 默认情况下是0表示没有延迟。此设置在多个应用程序配置为同时rollover日志文件的服务器上非常有用，并且可以实现随时分散负载。
+
+#### Rollover Strategies
+
+**Default Rollover Strategy**
+
+默认的rollover策略同时接受日期/时间模式和来自RollingFileAppender本身指定的filePattern属性的整数。如果日期/时间模式存在，它将被替换为当前的日期和时间值。如果模式包含一个整数，它将在每次rollover时递增。如果模式同时包含日期/时间和模式中的整数，则整数将递增直到日期/时间模式的结果更改。如果文件格式以.gz，.zip，.bz2，.deflate，.pack200或.xz结尾，则将使用对应的压缩方案进行压缩。bzip2，Deflate，Pack200和XZ格式需要Apache Commons Compress。另外，XZ需要XZ for Java。该模式还可能包含可在运行时解析的lookup引用，如以下示例中所示。
+
+默认rollover策略支持三种增加计数器的方法。首先是“固定窗口”策略，为了说明它是如何工作的，假设min属性设置为1，max属性设置为3，文件名为`foo.log`，文件名称模式为`foo-%i.log`。输出模式如下所示：
+
+- `0，foo.log，-`：所有日志输出至初始化文件。
+- `1，foo.log，foo-1.log`：第一次rollover时，foo.log重命名为foo-1.log；并新建一个foo.log文件写入。
+- `2，foo.log，foo-1.log、foo-2.log`：第二次rollover时，foo-1.log重命名为foo-2.log；foo.log重命名为foo-1.log；并新建一个foo.log文件写入。
+- `3，foo.log，foo-1.log、foo-2.log、foo-3.log`：第三次rollover时，foo-2.log重命名为foo-3.log；foo-1.log重命名为foo-2.log；foo.log重命名为foo-1.log；并新建一个foo.log文件写入。
+- `4，foo.log，foo-1.log、foo-2.log、foo-3.log`：在第四次rollover和后续的rollover中，foo-3.log被删除；foo-2.log重命名为foo-3.log；foo-1.log重命名为foo-2.log；foo.log重命名为foo-1.log，并新建一个foo.log文件写入。
+
+相反，当fileIndex属性设置为`max`，但所有其他设置相同时，将执行以下操作。
+
+- `0，foo.log，-`：所有日志输出至初始化文件。
+- `1，foo.log，foo-1.log`：第一次rollover时，foo.log重命名为foo-1.log；并新建一个foo.log文件写入。
+- `2，foo.log，foo-1.log、foo-2.log`：第二次rollover时，foo.log重命名为foo-2.log；并新建一个foo.log文件写入。
+- `3，foo.log，foo-1.log、foo-2.log、foo-3.log`：第三次rollover时，foo.log重命名为foo-3.log；并新建一个foo.log文件写入。
+- `4，foo.log，foo-1.log、foo-2.log、foo-3.log`：在第四次rollover和后续的rollover中，foo-1.log被删除；foo-2.log重命名为foo-1.log；foo-3.log重命名为foo-2.log；foo.log重命名为foo-3.log，并新建一个foo.log文件写入。
+
+最后，从版本2.8开始，如果fileIndex属性设置为`nomax`，那么最小值和最大值将被忽略，文件编号将递增1，并且每次rollover将递增，且无最大数量的文件。
+
+DefaultRolloverStrategy参数如下所示：
+
+- `fileIndex，String`：如果设置为max（默认值），索引较高的文件将比索引较小的文件更新。如果设置为“min”，则文件重命名和计数器将遵循上述固定窗口策略。
+- `min，integer`：计数器的最小值。默认值是1。
+- `max，integer`：计数器的最大值。一旦达到此值，旧的存档将在随后的转存中被删除。 默认值是7。
+- `compressionLevel，integer`：设置0-9压缩级别，其中0 = 无，1 = 最佳速度，9 = 最佳压缩。仅适用于ZIP文件。
+- `tempCompressedFilePattern，String`：压缩期间归档日志文件的文件名称的模式。
+
+**DirectWrite Rollover Strategy**
+
+DirectWriteRolloverStrategy会将日志事件直接写入由文件模式表示的文件。有了这个策略，文件重命名不会被执行。如果基于size的触发policy导致在指定的时间段内写入多个文件，则它们将从1开始编号并不断递增，直到发生基于time的rollover。
+
+警告：如果文件模式有一个后缀，表明应压缩，当应用程序关闭时，当前文件不会被压缩。此外，如果时间改变使得文件模式不再与当前文件匹配，则它在启动时也不会被压缩。
+
+DirectWriteRolloverStrategy的参数如下所示：
+
+- `maxFiles，String`：在与文件模式匹配的时间段内允许的最大文件数。如果文件数超过，最旧的文件将被删除。如果指定，则该值必须大于1。如果该值小于0或缺省，则文件数量不受限制。
+- `compressionLevel，integer`：设置0-9压缩级别，其中0 = 无，1 = 最佳速度，通过9 = 最佳压缩。仅适用于ZIP文件。
+- `tempCompressedFilePattern，String`：压缩期间归档日志文件的文件名称的模式。
+
+以下是使用RollingFileAppender并基于time和size的triggering policies的示例配置，将在同一天创建最多7个存档（1-7），存储在基于当前年份和月份的目录中，并且将使用gzip压缩每个存档：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <RollingFile name="RollingFile" fileName="logs/app.log"
+                 filePattern="logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz">
+      <PatternLayout>
+        <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+      </PatternLayout>
+      <Policies>
+        <TimeBasedTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="250 MB"/>
+      </Policies>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+第二个示例展示了一个rollover策略，在删除它们之前会保留多达20个文件。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <RollingFile name="RollingFile" fileName="logs/app.log"
+                 filePattern="logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz">
+      <PatternLayout>
+        <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+      </PatternLayout>
+      <Policies>
+        <TimeBasedTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="250 MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="20"/>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+以下是使用RollingFileAppender以及基于time和size的triggering policies的示例配置，将在同一天创建最多7个存档（1-7），存储在基于当前年份和月份的目录中，并且将使用gzip压缩每个压缩文件，并在当前小时数可被6整除时每6小时rollover一次：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <RollingFile name="RollingFile" fileName="logs/app.log"
+                 filePattern="logs/$${date:yyyy-MM}/app-%d{yyyy-MM-dd-HH}-%i.log.gz">
+      <PatternLayout>
+        <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+      </PatternLayout>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="6" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="250 MB"/>
+      </Policies>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+此示例配置使用RollingFileAppender以及基于cron和size的triggering policies，并直接写入无限数量的归档文件。cron触发器会导致每小时rollover一次，而文件大小限制为250MB：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <RollingFile name="RollingFile" filePattern="logs/app-%d{yyyy-MM-dd-HH}-%i.log.gz">
+      <PatternLayout>
+        <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+      </PatternLayout>
+      <Policies>
+        <CronTriggeringPolicy schedule="0 0 * * * ?"/>
+        <SizeBasedTriggeringPolicy size="250 MB"/>
+      </Policies>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+此示例配置与前一个相同，但将每小时保存的文件数限制为10：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <RollingFile name="RollingFile" filePattern="logs/app-%d{yyyy-MM-dd-HH}-%i.log.gz">
+      <PatternLayout>
+        <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+      </PatternLayout>
+      <Policies>
+        <CronTriggeringPolicy schedule="0 0 * * * ?"/>
+        <SizeBasedTriggeringPolicy size="250 MB"/>
+      </Policies>
+      <DirectWriteRolloverStrategy maxFiles="10"/>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+**Log Archive Retention Policy: Delete on Rollover**
+
+Log4j-2.5引入了Delete操作，使用户可以更加控制在rollover时删除的文件，而不是DefaultRolloverStrategy的max属性控制的可能会删除的文件。Delete操作允许用户配置一个或多个条件，以选择相对于基本目录的文件删除。
+
+请注意，可以删除任何文件，而不仅仅是rollover日志文件，因此请谨慎使用此操作！使用testMode参数，您可以测试您的配置而不会意外删除错误的文件。
+
+Delete的参数如下所示：
+
+- `basePath，String`：**必需**。从何处开始扫描要删除的文件的基本路径。
+- `maxDepth，int`：要访问的目录的最大级别数。除非安全管理器拒绝，值为0意味着只有启动文件（基本路径本身）被访问。Integer.MAX_VALUE的值表示应该访问所有级别。默认值为1，仅表示指定基本目录中的文件。
+- `followLinks，boolean`：是否遵循符号链接。默认为false。
+- `testMode，boolean`：如果为true，不删除文件而在INFO级别将消息打印到status logger。使用它来执行空运行以测试配置是否按预期工作。默认为false。
+- `pathSorter，PathSorter`：实现PathSorter接口的插件，用于在选择要删除的文件之前对文件进行排序。默认是按最近修改事件排序文件。
+- `pathConditions，PathCondition[]`：如果未指定ScriptCondition，则为必需。一个或多个PathCondition元素。如果指定了多个条件，则它们在删除之前都需要接受路径。条件可以嵌套，在这种情况下，仅当外部条件接受路径时才评估内部条件。如果条件不嵌套，可以按任何顺序进行评估。条件也可以通过使用IfAll，IfAny和IfNot复合条件与逻辑运算符AND，OR和NOT组合。
+- `scriptCondition，ScriptCondition`：如果未指定PathConditions，则为必需。ScriptCondition元素用来指定脚本。ScriptCondition应包含一个Script，ScriptRef或ScriptFile元素，用于指定要执行的逻辑。该脚本传递了许多参数，其中包括在基本路径下找到的路径列表（一直到maxDepth），并且必须返回一个包含要删除的路径的列表。
+
+IfFileName条件参数如下所示：
+
+- `glob，String`：如果未指定正则表达式，则为必需。使用有限模式语言匹配相对路径（相对于基本路径），类似于正则表达式但语法更简单。
+- `regex，String`：如果未指定glob，则为必需。使用Pattern类定义的正则表达式匹配相对路径（相对于基本路径）。
+- `nestedConditions，PathCondition[]`：一组可选的嵌套PathConditions。 如果存在任何嵌套条件，则它们在删除之前都需要接受该文件。只有外部条件接受文件时才会评估（如果路径名称匹配）。
+
+IfLastModified条件参数如下所示：
+
+- `age，String`：**必需**。指定duration。该条件接受比指定时间长或更早的文件。
+- `nestedConditions，PathCondition[]`：一组可选的嵌套PathConditions。 如果存在任何嵌套条件，则它们在删除之前都需要接受该文件。嵌套条件仅在外部条件接受文件时评估（如果文件足够大）。
+
+IfAccumulatedFileCount条件参数如下所示：
+
+- `exceeds，int`：**必需**。删除文件的阈值。
+- `nestedConditions，PathCondition[]`：一组可选的嵌套PathConditions。 如果存在任何嵌套条件，则它们在删除之前都需要接受该文件。只有在外部条件接受文件时才会评估（如果超出阈值计数）。
+
+IfAccumulatedFileSize条件参数如下所示：
+
+- `exceeds，String`：**必需**。删除文件的累积文件阈值大小。可以用字节指定，后缀为KB，MB或GB，例如20MB。
+- `nestedConditions，PathCondition[]`：一组可选的嵌套PathConditions。 如果存在任何嵌套条件，则它们在删除之前都需要接受该文件。嵌套条件仅在外部条件接受文件时评估（如果累计文件大小阈值已被超过）。
+
+以下是配置示例，该配置使用RollingFileAppender，并将cron triggering policy配置为每天午夜触发。档案根据当前的年份和月份存储在一个目录中。基本目录下与`*/app-*.log.gz`的glob匹配的所有文件并满足60天或更长时间的将在rollover时删除。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Properties>
+    <Property name="baseDir">logs</Property>
+  </Properties>
+  <Appenders>
+    <RollingFile name="RollingFile" fileName="${baseDir}/app.log"
+          filePattern="${baseDir}/$${date:yyyy-MM}/app-%d{yyyy-MM-dd}.log.gz">
+      <PatternLayout pattern="%d %p %c{1.} [%t] %m%n" />
+      <CronTriggeringPolicy schedule="0 0 0 * * ?"/>
+      <DefaultRolloverStrategy>
+        <Delete basePath="${baseDir}" maxDepth="2">
+          <IfFileName glob="*/app-*.log.gz" />
+          <IfLastModified age="60d" />
+        </Delete>
+      </DefaultRolloverStrategy>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+以下是使用RollingFileAppender以及基于time和size的triggering policy的示例配置，将在同一天根据当前年份和月份存储在目录中创建最多100个（1-100）存档，并且将使用gzip压缩每个压缩文件并每小时rollover一次。在每次rollover过程中，此配置将删除与`*/app-*.log.gz`且大于30天或更早的匹配文件，但保留最近的100GB或最近的10个文件，以先到者为准。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Properties>
+    <Property name="baseDir">logs</Property>
+  </Properties>
+  <Appenders>
+    <RollingFile name="RollingFile" fileName="${baseDir}/app.log"
+          filePattern="${baseDir}/$${date:yyyy-MM}/app-%d{yyyy-MM-dd-HH}-%i.log.gz">
+      <PatternLayout pattern="%d %p %c{1.} [%t] %m%n" />
+      <Policies>
+        <TimeBasedTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="250 MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="100">
+        <!--
+        Nested conditions: the inner condition is only evaluated on files
+        for which the outer conditions are true.
+        -->
+        <Delete basePath="${baseDir}" maxDepth="2">
+          <IfFileName glob="*/app-*.log.gz">
+            <IfLastModified age="30d">
+              <IfAny>
+                <IfAccumulatedFileSize exceeds="100 GB" />
+                <IfAccumulatedFileCount exceeds="10" />
+              </IfAny>
+            </IfLastModified>
+          </IfFileName>
+        </Delete>
+      </DefaultRolloverStrategy>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+ScriptCondition的参数如下所示：
+
+- `script，Script、ScriptFile、ScriptRef`：指定要执行的逻辑Script元素。脚本传递在基路径下找到的路径列表，并且必须返回要删除的路径作为`java.util.List<PathWithAttributes>`。
+
+Script的参数如下所示：
+
+- `basePath，java.nio.file.Path`：Delete操作开始扫描要删除的文件的目录。可用于pathList中的相对路径。
+- `pathList，java.util.List<PathWithAttributes>`：在基本路径下找到的达到指定最大深度的路径列表，首先对最近修改过的文件进行排序。脚本可以自由修改并返回此列表。
+- `statusLogger，StatusLogger`：在脚本执行期间可用于记录内部事件的StatusLogger。
+- `configuration，Configuration`：拥有此ScriptCondition的配置。
+- `substitutor，StrSubstitutor`：StrSubstitutor用于替换lookup变量。
+- `?，String`：在配置中声明的任何属性。
+
+以下是配置示例，该配置使用RollingFileAppender，并将cron triggering policy配置为每天午夜触发。档案根据当前的年份和月份存储在一个目录中。该脚本返回基路径下为13号星期五的rollover文件列表。Delete操作将删除脚本返回的所有文件。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="trace" name="MyApp" packages="">
+  <Properties>
+    <Property name="baseDir">logs</Property>
+  </Properties>
+  <Appenders>
+    <RollingFile name="RollingFile" fileName="${baseDir}/app.log"
+          filePattern="${baseDir}/$${date:yyyy-MM}/app-%d{yyyyMMdd}.log.gz">
+      <PatternLayout pattern="%d %p %c{1.} [%t] %m%n" />
+      <CronTriggeringPolicy schedule="0 0 0 * * ?"/>
+      <DefaultRolloverStrategy>
+        <Delete basePath="${baseDir}" maxDepth="2">
+          <ScriptCondition>
+            <Script name="superstitious" language="groovy"><![CDATA[
+                import java.nio.file.*;
+
+                def result = [];
+                def pattern = ~/\d*\/app-(\d*)\.log\.gz/;
+
+                pathList.each { pathWithAttributes ->
+                  def relative = basePath.relativize pathWithAttributes.path
+                  statusLogger.trace 'SCRIPT: relative path=' + relative + " (base=$basePath)";
+
+                  // remove files dated Friday the 13th
+
+                  def matcher = pattern.matcher(relative.toString());
+                  if (matcher.find()) {
+                    def dateString = matcher.group(1);
+                    def calendar = Date.parse("yyyyMMdd", dateString).toCalendar();
+                    def friday13th = calendar.get(Calendar.DAY_OF_MONTH) == 13 \
+                                  && calendar.get(Calendar.DAY_OF_WEEK) == Calendar.FRIDAY;
+                    if (friday13th) {
+                      result.add pathWithAttributes;
+                      statusLogger.trace 'SCRIPT: deleting path ' + pathWithAttributes;
+                    }
+                  }
+                }
+                statusLogger.trace 'SCRIPT: returning ' + result;
+                result;
+              ]] >
+            </Script>
+          </ScriptCondition>
+        </Delete>
+      </DefaultRolloverStrategy>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
 ### 7.18 RollingRandomAccessFileAppender
 
 ### 7.19 RoutingAppender
