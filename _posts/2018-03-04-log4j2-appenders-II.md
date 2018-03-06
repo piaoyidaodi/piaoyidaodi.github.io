@@ -1143,28 +1143,28 @@ ZeroMQ appender使用JeroMQ库将日志事件发送到一个或多个ZeroMQ端�
 
 下表列出了JeroMQ和ZeroMQ的参数列表：
 
-- name，String：**必需**，Appender的名称。
-布局布局用于格式化LogEvent的布局。如果未提供布局，则将使用“％m％n”的默认图案布局。
-过滤器过滤Appender的过滤器。
-属性属性[]一个或多个属性元素，名为端点。
-ignoreExceptions布尔值如果为true，则将记录和禁止异常。如果虚假错误将被记录并传递给应用程序。
-亲和力长的ZMQ_AFFINITY选项。默认为0。
-backlog long ZMQ_BACKLOG选项。默认为100。
-delayAttachOnConnect布尔值ZMQ_DELAY_ATTACH_ON_CONNECT选项。默认为false。
-标识字节[] ZMQ_IDENTITY选项。默认为无。
-ipv4Only布尔值ZMQ_IPV4ONLY选项。默认为true。
-逗留久长的ZMQ_LINGER选项。默认为-1。
-maxMsgSize long ZMQ_MAXMSGSIZE选项。默认为-1。
-rcvHwm long ZMQ_RCVHWM选项。默认为1000。
-receiveBufferSize long ZMQ_RCVBUF选项。默认为0。
-receiveTimeOut int ZMQ_RCVTIMEO选项。默认为-1。
-reconnectIVL long ZMQ_RECONNECT_IVL选项。默认为100。
-reconnectIVLMax long ZMQ_RECONNECT_IVL_MAX选项。默认为0。
-sendBufferSize long ZMQ_SNDBUF选项。默认为0。
-sendTimeOut int ZMQ_SNDTIMEO选项。默认为-1。
-sndHwm long ZMQ_SNDHWM选项。默认为1000。
-tcpKeepAlive int ZMQ_TCP_KEEPALIVE选项。默认为-1。
-tcpKeepAliveCount long ZMQ_TCP_KEEPALIVE_CNT选项。默认为-1。
-tcpKeepAliveIdle long ZMQ_TCP_KEEPALIVE_IDLE选项。默认为-1。
-tcpKeepAliveInterval long ZMQ_TCP_KEEPALIVE_INTVL选项。默认为-1。
-xpubVerbose boolean ZMQ_XPUB_VERBOSE选项。默认为false。
+- `name，String`：**必需**，Appender的名称。
+- `Layout，Layout`：用于格式化LogEvent的布局。如果未提供布局，则将使用默认的%m%n pattern layout。
+- `Filters，Filter`：过滤Appender的过滤器。
+- `Properties，Property[]`：一个或多个属性元素，名为endpoint。
+- `ignoreExceptions，boolean`：如果为true，则将记录和禁止异常。如果错误将被记录随后将传递给应用程序。
+- `affinity，long`：ZMQ_AFFINITY选项。默认为0。
+- `backlog，long`：ZMQ_BACKLOG选项。默认为100。
+- `delayAttachOnConnect，boolean`：ZMQ_DELAY_ATTACH_ON_CONNECT选项。默认为false。
+- `identity，byte[]`：ZMQ_IDENTITY选项。默认为none。
+- `ipv4Only，boolean`：ZMQ_IPV4ONLY选项。默认为true。
+- `linger，long`：ZMQ_LINGER选项。默认为-1。
+- `maxMsgSize，long`：ZMQ_MAXMSGSIZE选项。默认为-1。
+- `rcvHwm，long`：ZMQ_RCVHWM选项。默认为1000。
+- `receiveBufferSize，long`：ZMQ_RCVBUF选项。默认为0。
+- `receiveTimeOut，int`：ZMQ_RCVTIMEO选项。默认为-1。
+- `reconnectIVL，long`：ZMQ_RECONNECT_IVL选项。默认为100。
+- `reconnectIVLMax，long`：ZMQ_RECONNECT_IVL_MAX选项。默认为0。
+- `sendBufferSize，long`：ZMQ_SNDBUF选项。默认为0。
+- `sendTimeOut，int`：ZMQ_SNDTIMEO选项。默认为-1。
+- `sndHwm，long`：ZMQ_SNDHWM选项。默认为1000。
+- `tcpKeepAlive，int`：ZMQ_TCP_KEEPALIVE选项。默认为-1。
+- `tcpKeepAliveCount，long`：ZMQ_TCP_KEEPALIVE_CNT选项。默认为-1。
+- `tcpKeepAliveIdle，long`：ZMQ_TCP_KEEPALIVE_IDLE选项。默认为-1。
+- `tcpKeepAliveInterval，long`：ZMQ_TCP_KEEPALIVE_INTVL选项。默认为-1。
+- `xpubVerbose，boolean`：ZMQ_XPUB_VERBOSE选项。默认为false。
