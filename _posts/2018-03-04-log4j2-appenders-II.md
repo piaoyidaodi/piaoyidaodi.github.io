@@ -575,18 +575,596 @@ Script的参数如下所示：
 </Configuration>
 ```
 
+**Log Archive File Attribute View Policy: Custom file attribute on Rollover**
+
+Log4j-2.9引入了PosixViewAttribute操作，使用户可以更好地控制文件属性权限，所有者和组。PosixViewAttribute操作允许用户配置一个或多个条件来选择相对于基目录的合格文件。
+
+PosixViewAttriute参数如下表所示：
+
+- `basePath，String`：**必需**。开始扫描文件以应用属性的基本路径。
+- `maxDepth，int`：要访问的目录的最大层级数。值为0意味着只有启动文件（基本路径本身）被访问，除非被安全管理器拒绝。Integer.MAX_VALUE的值表示应该访问所有级别。默认值为1，仅表示指定基本目录中的文件。
+- `followLinks，boolean`：是否跟踪符号链接。默认为false。
+- `pathConditions，PathCondition[]`：请参见DeletePathCondition
+- `filePermissions，String`：当执行操作时以POSIX格式的文件属性权限。底层文件系统应支持POSIX文件属性视图。例如：`rw-------`或`rw-rw-rw-`等。
+- `fileOwner，String`：定义何时执行操作的文件所有者。出于安全原因，更改文件的所有者可能受到限制并且操作不允许抛出IOException。如果_POSIX_CHOWN_RESTRICTED对路径有效，则只有有效用户ID等于文件用户ID或具有适当权限的进程才可以更改文件的所有权。底层文件系统应支持文件owner属性视图。
+- `fileGroup，String`：定义何时执行的文件组。底层文件系统应支持POSIX文件属性视图。
+
+以下是使用RollingFileAppender的配置示例，并为当前日志文件和滚动日志文件定义了不同的POSIX文件属性视图。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="trace" name="MyApp" packages="">
+  <Properties>
+    <Property name="baseDir">logs</Property>
+  </Properties>
+  <Appenders>
+    <RollingFile name="RollingFile" fileName="${baseDir}/app.log"
+          		 filePattern="${baseDir}/$${date:yyyy-MM}/app-%d{yyyyMMdd}.log.gz"
+                 filePermissions="rw-------">
+      <PatternLayout pattern="%d %p %c{1.} [%t] %m%n" />
+      <CronTriggeringPolicy schedule="0 0 0 * * ?"/>
+      <DefaultRolloverStrategy stopCustomActionsOnError="true">
+        <PosixViewAttribute basePath="${baseDir}/$${date:yyyy-MM}" filePermissions="r--r--r--">
+        	<IfFileName glob="*.gz" />
+        </PosixViewAttribute>
+      </DefaultRolloverStrategy>
+    </RollingFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
 ### 7.18 RollingRandomAccessFileAppender
+
+RollingRandomAccessFileAppender类似于标准的RollingFileAppender，只是它始终被缓冲（这不能被关闭），并且在内部它使用ByteBuffer+RandomAccessFile而不是BufferedOutputStream。与设置bufferedIO = true的RollingFileAppender相比，测试结果显示性能提高了20-200％。RollingRandomAccessFileAppender将写入fileName参数中指定的File，并根据TriggeringPolicy和RolloverPolicy将文件rollover。类似于RollingFileAppender，RollingRandomAccessFileAppender使用RollingRandomAccessFileManager来实际执行文件I/O并执行rollover。虽然来自不同配置的RollingRandomAccessFileAppender无法共享，但如果Manager可用，RollingRandomAccessFileManagers可以被共享。例如，如果Log4j处于一个公共的ClassLoader中，那么servlet容器中的两个Web应用程序可以拥有自己的配置并安全地写入同一文件。
+
+RollingRandomAccessFileAppender需要一个TriggeringPolicy和一个RolloverStrategy。triggering policy确定在RolloverStrategy中所定义的rollover方法是否应执行。如果没有配置RolloverStrategy，RollingRandomAccessFileAppender将使用DefaultRolloverStrategy。自log4j-2.5以来，可以在DefaultRolloverStrategy中配置自定义删除操作，以便在rollover时运行。
+
+RollingRandomAccessFileAppender不支持文件锁定。
+
+RollingRandomAccessFileAppender的参数如下所示：
+
+- `append，boolean`：如果为true（默认值），记录将被追加到文件的末尾。设置为false时，文件将在写入新记录之前清除。
+- `filter，Filter`：Filter用来确定该Appender是否应该处理该事件。使用CompositeFilter可以配置多个Filter。
+- `fileName，String`：要写入的文件的名称。如果该文件或其任何父目录不存在，它们将被创建。
+- `filePattern，String`：归档日志文件的文件名模式。模式的格式应该取决于所使用的RolloverPolicy。DefaultRolloverPolicy将接受与SimpleDateFormat兼容的date/time模式和/或代表整数计数器的%i。该模式还支持运行时插值，因此任何lookup（例如DateLookup）都可以包含在模式中。
+- `immediateFlush，boolean`：如果为true（默认值），每次写入后都会进行刷新。这将保证数据写入磁盘，但可能会影响性能。每次写入后刷新仅在与同步记录器一起使用时有用，即使将immediateFlush设置为false，异步记录器和appender也会在一批事件结束时自动刷新。这也保证数据写入磁盘，但效率更高。
+- `bufferSize，int`：该参数代表缓冲区大小，默认值为262144字节（256*1024）。
+- `layout，Layout`：用于格式化LogEvent的布局。如果未提供布局，则将使用%m%n的默认layout。
+- `name，String`：Appender的名称。
+- `policy，TriggeringPolicy`：用于确定是否发生rollover的策略。
+- `strategy，RolloverStrategy`：用于确定归档文件的名称和位置的策略。
+- `ignoreExceptions，boolean`：缺省值为true，此时若在追加事件时遇到异常，这些事件将在内部记录并被忽略。当设置为false时，异常将被传递给调用者。将此Appender包装在FailoverAppender中时，必须将其设置为false。
+- `filePermissions，String`：当执行操作时以POSIX格式的文件属性权限。底层文件系统应支持POSIX文件属性视图。例如：`rw-------`或`rw-rw-rw-`等。
+- `fileOwner，String`：定义何时执行操作的文件所有者。出于安全原因，更改文件的所有者可能受到限制并且操作不允许抛出IOException。如果_POSIX_CHOWN_RESTRICTED对路径有效，则只有有效用户ID等于文件用户ID或具有适当权限的进程才可以更改文件的所有权。底层文件系统应支持文件owner属性视图。
+- `fileGroup，String`：定义何时执行的文件组。底层文件系统应支持POSIX文件属性视图。
+
+下面是使用RollingRandomAccessFileAppender的示例配置，其中包含基于time和size的triggering policies，将在同一天创建最多7个（1-7）存档，存储在基于当前年份和月份的目录中，并且将使用gzip压缩每个存档：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <RollingRandomAccessFile name="RollingRandomAccessFile" fileName="logs/app.log"
+                 filePattern="logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz">
+      <PatternLayout>
+        <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+      </PatternLayout>
+      <Policies>
+        <TimeBasedTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="250 MB"/>
+      </Policies>
+    </RollingRandomAccessFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingRandomAccessFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+第二个例子展示了一个rollover策略，在删除它们之前会保留多达20个文件。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <RollingRandomAccessFile name="RollingRandomAccessFile" fileName="logs/app.log"
+                 filePattern="logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz">
+      <PatternLayout>
+        <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+      </PatternLayout>
+      <Policies>
+        <TimeBasedTriggeringPolicy />
+        <SizeBasedTriggeringPolicy size="250 MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="20"/>
+    </RollingRandomAccessFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingRandomAccessFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+下面是使用RollingRandomAccessFileAppender的示例配置，其中包含基于time和size的triggering policies，将在同一天创建最多7个（1-7）存档，存储在基于当前年份和月份的目录中，并且将使用gzip压缩每个压缩文件，并在小时数可被6整除时每6小时rollover一次：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <RollingRandomAccessFile name="RollingRandomAccessFile" fileName="logs/app.log"
+                 filePattern="logs/$${date:yyyy-MM}/app-%d{yyyy-MM-dd-HH}-%i.log.gz">
+      <PatternLayout>
+        <Pattern>%d %p %c{1.} [%t] %m%n</Pattern>
+      </PatternLayout>
+      <Policies>
+        <TimeBasedTriggeringPolicy interval="6" modulate="true"/>
+        <SizeBasedTriggeringPolicy size="250 MB"/>
+      </Policies>
+    </RollingRandomAccessFile>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="RollingRandomAccessFile"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
 
 ### 7.19 RoutingAppender
 
+RoutingAppender评估LogEvents，然后将它们路由到下级Appender。 目标Appender可以是之前配置的appender，可以通过其名称来引用，或者也可以是根据需要动态创建的Appender。RoutingAppender应在其引用的任何Appender之后进行配置，以允许它正常关闭。
+
+您还可以使用脚本配置RoutingAppender：您可以在appender启动时以及为日志事件选择路由时运行脚本。
+
+RoutingAppender参数如下所示：
+
+- `filter，Filter`：Filter用来确定该Appender是否应该处理该事件。使用CompositeFilter可以配置多个Filter。
+- `name，String`：Appender的名称。
+- `RewritePolicy，RewritePolicy`：操作LogEvent的RewritePolicy。
+- `Routes，Routes`：包含一个或多个Route声明以指定选择Appender的标准。
+- `Script，Script`：当Log4j启动RoutingAppender时该脚本运行，并返回一个确定默认Route的字符键。
+- `ignoreExceptions，boolean`：缺省值为true，此时若在追加事件时遇到异常，这些事件将在内部记录并被忽略。当设置为false时，异常将被传递给调用者。将此Appender包装在FailoverAppender中时，必须将其设置为false。
+
+在此示例中，该脚本会使ServiceWindows路径成为Windows上的默认路由，并在所有其他操作系统上使用ServiceOther。请注意，ListAppender是我们的测试Appender之一，任何附加程序都可以使用，它仅用作简写。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" name="RoutingTest">
+  <Appenders>
+    <Routing name="Routing">
+      <Script name="RoutingInit" language="JavaScript"><![CDATA[
+        importPackage(java.lang);
+        System.getProperty("os.name").search("Windows") > -1 ? "ServiceWindows" : "ServiceOther";]]>
+      </Script>
+      <Routes>
+        <Route key="ServiceOther">
+          <List name="List1" />
+        </Route>
+        <Route key="ServiceWindows">
+          <List name="List2" />
+        </Route>
+      </Routes>
+    </Routing>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="Routing" />
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+#### Routes
+
+Routes元素接受一个名为pattern的属性。该模式针对所有注册的lookup进行评估，结果用于选择Route。每个路由可以配置一个密钥。如果该键匹配评估模式的结果，那么将选择该Route。如果在路由上没有指定密钥，那么该路由是默认路由。只有一个路由可以配置为默认路由。
+
+Routes元素可能包含一个Script子元素。如果指定，则每个日志事件运行该脚本并返回要使用的Route字符键。
+
+您必须指定pattern属性或Script元素，但不能同时指定两者。
+
+每条路线必须引用一个Appender。如果Route包含一个ref属性，那么Route将引用在配置中定义的Appender。如果Route包含Appender定义，则将在RoutingAppender的上下文中创建一个Appender，并且在每次通过Route引用匹配的Appender名称时将重用该Appender。
+
+该脚本传递了以下变量：
+
+- configuration，Configuration：活动的Configuration。
+- staticVariables，Map：在此appender实例的所有脚本调用之间共享的一个Map。这是传递给Routes Script的相同映射。
+
+在以下示例中，该脚本针对每个日志事件运行，并根据名为“AUDIT”的标记的存在route。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" name="RoutingTest">
+  <Appenders>
+    <Console name="STDOUT" target="SYSTEM_OUT" />
+    <Flume name="AuditLogger" compress="true">
+      <Agent host="192.168.10.101" port="8800"/>
+      <Agent host="192.168.10.102" port="8800"/>
+      <RFC5424Layout enterpriseNumber="18060" includeMDC="true" appName="MyApp"/>
+    </Flume>
+    <Routing name="Routing">
+      <Routes>
+        <Script name="RoutingInit" language="JavaScript"><![CDATA[
+          if (logEvent.getMarker() != null && logEvent.getMarker().isInstanceOf("AUDIT")) {
+                return "AUDIT";
+            } else if (logEvent.getContextMap().containsKey("UserId")) {
+                return logEvent.getContextMap().get("UserId");
+            }
+            return "STDOUT";]]>
+        </Script>
+        <Route>
+          <RollingFile
+              name="Rolling-${mdc:UserId}"
+              fileName="${mdc:UserId}.log"
+              filePattern="${mdc:UserId}.%i.log.gz">
+            <PatternLayout>
+              <pattern>%d %p %c{1.} [%t] %m%n</pattern>
+            </PatternLayout>
+            <SizeBasedTriggeringPolicy size="500" />
+          </RollingFile>
+        </Route>
+        <Route ref="AuditLogger" key="AUDIT"/>
+        <Route ref="STDOUT" key="STDOUT"/>
+      </Routes>
+      <IdlePurgePolicy timeToLive="15" timeUnit="minutes"/>
+    </Routing>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="Routing" />
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+#### Purge Policy
+
+RoutingAppender可以配置一个PurgePolicy，其目的是停止并删除由RoutingAppender动态创建的休眠Appender。 Log4j目前提供IdlePurgePolicy作为可用于清理Appender的唯一PurgePolicy。IdlePurgePolicy接受2个属性：`timeToLive`，这是在没有发送任何事件发送给Appender的情况下其应该能够存活的timeUnit数量；`timeUnit`是与timeToLive属性一起使用的java.util.concurrent.TimeUnit的字符串表示形式。
+
+以下是使用RoutingAppender将所有Audit事件路由到FlumeAppender的示例配置，所有其他事件都将路由到仅捕获特定事件类型的RollingFileAppender。请注意，AuditAppender是预定义的，而RollingFileAppenders是根据需要创建的。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <Flume name="AuditLogger" compress="true">
+      <Agent host="192.168.10.101" port="8800"/>
+      <Agent host="192.168.10.102" port="8800"/>
+      <RFC5424Layout enterpriseNumber="18060" includeMDC="true" appName="MyApp"/>
+    </Flume>
+    <Routing name="Routing">
+      <Routes pattern="$${sd:type}">
+        <Route>
+          <RollingFile name="Rolling-${sd:type}" fileName="${sd:type}.log"
+                       filePattern="${sd:type}.%i.log.gz">
+            <PatternLayout>
+              <pattern>%d %p %c{1.} [%t] %m%n</pattern>
+            </PatternLayout>
+            <SizeBasedTriggeringPolicy size="500" />
+          </RollingFile>
+        </Route>
+        <Route ref="AuditLogger" key="Audit"/>
+      </Routes>
+      <IdlePurgePolicy timeToLive="15" timeUnit="minutes"/>
+    </Routing>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="Routing"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
 ### 7.20 SMTPAppender
+
+发生特定日志记录事件时（通常为Error或Fatal），发送电子邮件。
+
+此电子邮件中传递的日志记录事件的数量取决于BufferSize选项的值。SMTPAppender只在其循环缓冲区中保留最后一个BufferSize记录事件。这将内存需求保持在合理的水平，同时仍然提供有用的应用程序上下文。电子邮件中包含缓冲区中的所有事件。在触发电子邮件的事件之前，缓冲区将包含TRACE到WARN级别的最新事件。
+
+默认行为是在记录ERROR或更高严重性事件时触发发送电子邮件并将其格式化为HTML。发送电子邮件的时间可以通过在Appender上设置一个或多个filter来控制。和其他Appender一样，可以通过指定Appender的layout来控制格式。
+
+SMTPAppender的参数如下所示：
+
+- `name，String`：Appender的名称。
+- `from，String`：邮件发送者的地址。
+- `replyTo，String`：用逗号隔开的回复邮件地址列表。
+- `to，String`：用逗号隔开的接受者邮件地址列表。
+- `cc，String`：用逗号隔开的CC地址列表。
+- `bcc，String`：用逗号隔开的BCC地址列表。
+- `subject，String`：邮件消息的主题。
+- `bufferSize，integer`：将被包含在消息中的日志事件的最大缓冲数，默认为512。
+- `layout，Layout`：格式化LogEvent的Layout，如果不设置Layout则默认使用HTML layout。
+- `filter，Filter`：Filter用于确定该事件是否应当被此Appender操纵，可使用CompositeFilter配置多个Filter。
+- `smtpDebug，boolean`：当设置为true时，在STDOUT上开启session debugging。默认为false。
+- `smtpHost，String`：**必需**，将要发送的SMTP主机名。
+- `smtpPassword，String`：认证SMTP服务器所需要的密码。
+- `smtpPort，String`：发送的SMTP端口。
+- `smtpProtocol，String`：SMTP传输协议（如smtps，默认为smtp）。
+- `smtpUsername，String`：认证SMTP服务器所需要的用户名。
+- `ignoreExceptions，boolean`：缺省值为true，此时若在追加事件时遇到异常，这些事件将在内部记录并被忽略。当设置为false时，异常将被传递给调用者。将此Appender包装在FailoverAppender中时，必须将其设置为false。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <SMTP name="Mail" subject="Error Log" to="errors@logging.apache.org" from="test@logging.apache.org"
+          smtpHost="localhost" smtpPort="25" bufferSize="50">
+    </SMTP>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="Mail"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
 
 ### 7.21 ScriptAppenderSelector
 
+构建配置时，ScriptAppenderSelector appender将调用Script来计算appender名称。Log4j然后使用ScriptAppenderSelector的名称创建一个AppenderSet下列出的appender。配置完成后，Log4j将忽略ScriptAppenderSelector。Log4j只从配置树构建一个选定的appender，并忽略其他AppenderSet子节点。
+
+在以下示例中，该脚本返回名称List2。appender名称记录在ScriptAppenderSelector的名称下，而不是所选appender的名称，在本例中为SelectIt。
+
+```xml
+<Configuration status="WARN" name="ScriptAppenderSelectorExample">
+  <Appenders>
+    <ScriptAppenderSelector name="SelectIt">
+      <Script language="JavaScript"><![CDATA[
+        importPackage(java.lang);
+        System.getProperty("os.name").search("Windows") > -1 ? "MyCustomWindowsAppender" : "MySyslogAppender";]]>
+      </Script>
+      <AppenderSet>
+        <MyCustomWindowsAppender name="MyAppender" ... />
+        <SyslogAppender name="MySyslog" ... />
+      </AppenderSet>
+    </ScriptAppenderSelector>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="SelectIt" />
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
 ### 7.22 SocketAppender
+
+SocketAppender是一个OutputStreamAppender，它将输出写入到由主机和端口指定的远程目标。数据可以通过TCP或UDP发送，并可以以任何格式发送。您可以选择使用SSL保护通信。
+
+SocketAppender的参数如下所示：
+
+- `name，String`：Appender的名字。
+- ``host，String``：**必需**，监听日志事件的系统地址名称。
+- `port，integer`：**必需**，监听日志事件的主机端口。
+- `protocol，String`：TCP（默认），SSL或UDP。
+- `SSL，SSLConfiguration`：包含KeyStore和TrustStore的配置。
+- `filter，Filter`：Filter用于确定该事件是否应当被此Appender操纵，可使用CompositeFilter配置多个Filter。
+- `immediateFail，boolean`：当设置为true时，日志事件将进行再连接并且如果socket不可用时立即fail。
+- `immediateFlush，boolean`：当设置为true时（默认），每次写操作将进行一次flush。这将确保数据写入硬盘，但可能影响性能。
+- `bufferedIO，boolean`：当设置为true时（默认），日志将首先被写入缓存，当缓存充满或immediateFlush被设置时，数据将被写入socket。
+- `bufferSize，int`：当bufferedIO为true时，在此设置缓冲区大小，默认为8192字节。
+- `layout，Layout`：**必需**，且无默认值。格式化LogEvent的Layout。从2.9版本新增，在先前的版本默认为SerializedLayout。
+- `reconnectionDelayMilis，integer`：如果设置为大于0的值，则在发生错误后，SocketManager将在等待指定的毫秒数后尝试重新连接到服务器。如果重新连接失败，则会抛出异常（如果ignoreExceptions设置为false，可以被应用程序捕获）。
+- `connectTimeoutMilis，integer`：毫秒格式的连接超时时间。默认为0（无限的超时，类似于Socket.connect()方法）。
+- `ignoreExceptions，boolean`：缺省值为true，此时若在追加事件时遇到异常，这些事件将在内部记录并被忽略。当设置为false时，异常将被传递给调用者。将此Appender包装在FailoverAppender中时，必须将其设置为false。
+
+以下示例为一个不安全的TCP配置：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <Socket name="socket" host="localhost" port="9500">
+      <JsonLayout properties="true"/>
+    </Socket>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="socket"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+以下为一个安全的SSL配置：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <Socket name="socket" host="localhost" port="9500">
+      <JsonLayout properties="true"/>
+      <SSL>
+        <KeyStore   location="log4j2-keystore.jks" passwordEnvironmentVariable="KEYSTORE_PASSWORD"/>
+        <TrustStore location="truststore.jks"      passwordFile="${sys:user.home}/truststore.pwd"/>
+      </SSL>
+    </Socket>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="socket"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
 
 ### 7.23 SSL Configuration
 
+可以配置多个appender为使用普通网络连接或安全套接字层（SSL）连接。本节介绍可用于SSL配置的参数。
+
+- `protocol，String`：缺省为SSL。
+- `KeyStore，KeyStore`：包含你的私钥和证书，并确定向远程主机发送哪个认证证书。
+- `TrustStore，TrustStore`：包含远程用户的CA证书，确定远程证书是否应当被信任。
+
+**KeyStore**
+
+KeyStore旨在包含您的私钥和证书，并确定将哪些授权证书发送给远程主机。配置参数如下所示：
+
+- `location，String`：KeyStore文件的路径。
+- `password，char[]`：访问KeyStore所需的纯文本密码，不能与passwordEnvironmentVariable或passwordFile组合使用。
+- `passwordEnvironmentVariable，String`：保存密码的环境变量的名称。不能与password或passwordFile组合使用。
+- `passwordFile，String`：保存密码的文件的路径。不能与password或passwordEnvironmentVariable组合使用。
+- `type，String`：可选的KeyStore类型，例如 JKS，PKCS12，PKCS11，BKS，Windows-MY/Windows-ROOT，KeychainStore等。默认为JKS。
+- `keyManagerFactoryAlgorithm，String`：可选的KeyManagerFactory算法。默认值是SunX509。
+
+**TrustStore**
+
+TrustStore旨在远程方出示其证书时，保存你信任的远程方CA证书。确定是否应该信任远程认证凭证（以及连接）。
+
+在某些情况下，它们可以是同一个store，但使用不同store通常更好（尤其是基于文件的store）。
+
+TrustStore的配置参数如下：
+
+- `location，String`：KeyStore文件的路径。
+- `password，char[]`：访问KeyStore所需的纯文本密码，不能与passwordEnvironmentVariable或passwordFile组合使用。
+- `passwordEnvironmentVariable，String`：保存密码的环境变量的名称。不能与password或passwordFile组合使用。
+- `passwordFile，String`：保存密码的文件的路径。不能与password或passwordEnvironmentVariable组合使用。
+- `type，String`：可选的KeyStore类型，例如 JKS，PKCS12，PKCS11，BKS，Windows-MY/Windows-ROOT，KeychainStore等。默认为JKS。
+- `keyManagerFactoryAlgorithm，String`：可选的KeyManagerFactory算法。默认值是SunX509。
+
+示例如下：
+
+```xml
+<SSL>
+    <KeyStore   location="log4j2-keystore.jks" passwordEnvironmentVariable="KEYSTORE_PASSWORD"/>
+    <TrustStore location="truststore.jks"      passwordFile="${sys:user.home}/truststore.pwd"/>
+</SSL>
+```
+
 ### 7.24 SyslogAppender
 
+SyslogAppender是一个SocketAppender，它将输出写入由主机和端口指定的远程目标，格式符合BSD Syslog格式或RFC 5424格式。数据可以通过TCP或UDP发送。
+
+SyslogAppender的参数如下所示：
+
+- `advertise，boolean`：指示appender是否应advertise。
+- `appName，String`：在RFC5424 syslog记录中用作APP-NAME的值。
+- `charset，String`：将syslog String转换为字节数组时使用的字符集。该字符串必须是有效的字符集。如果未指定，则将使用默认系统字符集。
+- `connectTimeoutMillis，integer`：连接超时（以毫秒为单位）。缺省值为0（无超时限制，如Socket.connect（）方法）。
+- `enterpriseNumber，integer`：RFC5424中所述的IANA企业编号。
+- `filter，Filter`：确定事件是否应由该Appender处理。使用CompositeFilter可以指定多个Filter。
+- `facility，String`：facility用于尝试对消息进行分类。facility选项必须设置为“KERN”，“USER”，“MAIL”，“DAEMON”，“AUTH”，“SYSLOG”，“LPR”，“NEWS”，“UUCP”，“CRON”，“AUTHPRIV”，“FTP”，“NTP”，“AUDIT”，“ALERT”，“CLOCK”，“LOCAL0”，“LOCAL1”，“LOCAL2”，“LOCAL3”，“LOCAL4”，“LOCAL5”，“LOCAL6”，或“LOCAL7”。这些值可能为大写或小写字符。
+- `format，String`：如果设置为“RFC5424”，数据将根据RFC5424格式化。否则，它将被格式化为BSD Syslog记录。请注意，虽然BSD Syslog记录要求为1024字节或更短，但SyslogLayout不会截断它们。RFC5424Layout也不会截断记录，因为接收器必须接受长达2048字节的记录，并可能接受更长的记录。
+- `host，String`：正在监听日志事件的系统名称或地址。该参数是**必需**的。
+- `id，String`：当进行格式化时根据RFC5424所使用的默认结构化数据ID。如果LogEvent包含StructuredDataMessage，则将使用来自消息的ID代替此值。
+- `immediateFail，boolean`：当设置为true时，日志事件将不会尝试等待重新连接，如果socket不可用时立即fail。
+- `immediateFlush，boolean`：当设置为true时（默认），每次写操作将进行一次flush。这将确保数据写入硬盘，但可能影响性能。
+- `ignoreExceptions，boolean`：缺省值为true，此时若在追加事件时遇到异常，这些事件将在内部记录并被忽略。当设置为false时，异常将被传递给调用者。将此Appender包装在FailoverAppender中时，必须将其设置为false。
+- `includeMDC，boolean`：指示来自ThreadContextMap的数据是否将包含在RFC5424 Syslog记录中。默认为true。
+- `layout，Layout`：覆盖在format中设置的自定义布局。
+- `loggerFields，List of KeyValuePairs`：允许将任意PatternLayout模式作为指定的ThreadContext字段包含在内；未指定默认值。使用时请包含LoggerFields嵌套元素，其中包含一个或多个KeyValuePair元素。每个KeyValuePair 必须具有一个key属性，该属性指定将用于标识MDC Structured Data元素内的字段的键名；以及一个value属性，其指定了要用作值的PatternLayout模式。
+- `mdcExcludes，String`：应该从LogEvent中排除的的mdc键列表（使用逗号分隔）。这与mdcIncludes属性是互斥的。该属性仅适用于RFC5424 syslog记录。
+- `mdcIncludes，String`：应该包含在FlumeEvent中的mdc键列表（使用逗号分隔）。列表中未找到的任何MDC密钥都将被排除。该选项与mdcExcludes属性互斥。该属性仅适用于RFC5424 syslog记录。
+- `mdcRequired，String`：必须存在于MDC中的mdc键列表（使用逗号分隔）。如果某个键不存在，则会抛出LoggingException。该属性仅适用于RFC5424 syslog记录。
+- `mdcPrefix，String`：应该为每个MDC密钥添加前缀以便将其与event属性区分开。默认字符串是“mdc：”。该属性仅适用于RFC5424 syslog记录。
+- `messageId，String`：在RFC5424 syslog记录的MSGID字段中使用的默认值。
+- `name，String`：Appender的名称。
+- `newLine，boolean`：如果为true，则将在syslog记录的末尾附加一个换行符。默认值是false。
+- `port，integer`：正在侦听日志事件的主机上的端口。该参数必须指定。
+- `protocol，String`：“TCP”或“UDP”。该参数是必需的。
+- `SSL，SslConfiguration`：包含KeyStore和TrustStore的配置。请参阅SSL。
+- `reconnectionDelayMillis，integer`：如果设置为大于0的值，则在发生错误后，SocketManager将在等待指定的毫秒数后尝试重新连接到服务器。如果重新连接失败，则会抛出异常（如果ignoreExceptions设置为false，可以被应用程序捕获）。
+
+下面一个syslogAppender配置示例，配置了两个SyslogAppenders，一个使用BSD格式，一个使用RFC5424。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <Syslog name="bsd" host="localhost" port="514" protocol="TCP"/>
+    <Syslog name="RFC5424" format="RFC5424" host="localhost" port="8514"
+            protocol="TCP" appName="MyApp" includeMDC="true"
+            facility="LOCAL0" enterpriseNumber="18060" newLine="true"
+            messageId="Audit" id="App"/>
+  </Appenders>
+  <Loggers>
+    <Logger name="com.mycorp" level="error">
+      <AppenderRef ref="RFC5424"/>
+    </Logger>
+    <Root level="error">
+      <AppenderRef ref="bsd"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+对于SSL，该appender将其输出写入由主机和端口通过SSL指定的远程目标，格式符合BSD Syslog格式或RFC5424格式。
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" name="MyApp" packages="">
+  <Appenders>
+    <TLSSyslog name="bsd" host="localhost" port="6514">
+      <SSL>
+        <KeyStore   location="log4j2-keystore.jks" passwordEnvironmentVariable="KEYSTORE_PASSWORD"/>
+        <TrustStore location="truststore.jks"      passwordFile="${sys:user.home}/truststore.pwd"/>
+      </SSL>
+    </TLSSyslog>
+  </Appenders>
+  <Loggers>
+    <Root level="error">
+      <AppenderRef ref="bsd"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
 ### 7.25 ZeroMQ/JeroMQ Appender
+
+ZeroMQ appender使用JeroMQ库将日志事件发送到一个或多个ZeroMQ端点。
+
+下面是一个简单的JeroMQ配置：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration name="JeroMQAppenderTest" status="TRACE">
+  <Appenders>
+    <JeroMQ name="JeroMQAppender">
+      <Property name="endpoint">tcp://*:5556</Property>
+      <Property name="endpoint">ipc://info-topic</Property>
+    </JeroMQ>
+  </Appenders>
+  <Loggers>
+    <Root level="info">
+      <AppenderRef ref="JeroMQAppender"/>
+    </Root>
+  </Loggers>
+</Configuration>
+```
+
+下表列出了JeroMQ和ZeroMQ的参数列表：
+
+- name，String：**必需**，Appender的名称。
+布局布局用于格式化LogEvent的布局。如果未提供布局，则将使用“％m％n”的默认图案布局。
+过滤器过滤Appender的过滤器。
+属性属性[]一个或多个属性元素，名为端点。
+ignoreExceptions布尔值如果为true，则将记录和禁止异常。如果虚假错误将被记录并传递给应用程序。
+亲和力长的ZMQ_AFFINITY选项。默认为0。
+backlog long ZMQ_BACKLOG选项。默认为100。
+delayAttachOnConnect布尔值ZMQ_DELAY_ATTACH_ON_CONNECT选项。默认为false。
+标识字节[] ZMQ_IDENTITY选项。默认为无。
+ipv4Only布尔值ZMQ_IPV4ONLY选项。默认为true。
+逗留久长的ZMQ_LINGER选项。默认为-1。
+maxMsgSize long ZMQ_MAXMSGSIZE选项。默认为-1。
+rcvHwm long ZMQ_RCVHWM选项。默认为1000。
+receiveBufferSize long ZMQ_RCVBUF选项。默认为0。
+receiveTimeOut int ZMQ_RCVTIMEO选项。默认为-1。
+reconnectIVL long ZMQ_RECONNECT_IVL选项。默认为100。
+reconnectIVLMax long ZMQ_RECONNECT_IVL_MAX选项。默认为0。
+sendBufferSize long ZMQ_SNDBUF选项。默认为0。
+sendTimeOut int ZMQ_SNDTIMEO选项。默认为-1。
+sndHwm long ZMQ_SNDHWM选项。默认为1000。
+tcpKeepAlive int ZMQ_TCP_KEEPALIVE选项。默认为-1。
+tcpKeepAliveCount long ZMQ_TCP_KEEPALIVE_CNT选项。默认为-1。
+tcpKeepAliveIdle long ZMQ_TCP_KEEPALIVE_IDLE选项。默认为-1。
+tcpKeepAliveInterval long ZMQ_TCP_KEEPALIVE_INTVL选项。默认为-1。
+xpubVerbose boolean ZMQ_XPUB_VERBOSE选项。默认为false。
