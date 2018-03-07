@@ -246,7 +246,7 @@ RegexReplacement参数如下所示：
 
 Log4j中所提供的转换pattern如下所示：
 
-**`c{precision}`或`logger{precision}`**
+**1. `c{precision}`或`logger{precision}`**
 
 用来输出发布logging event的logger的名称。记录器转换说明符可以选择后跟precision specifier（精度说明符），精度说明符由十进制整数或以十进制整数开头的pattern组成。
 
@@ -266,13 +266,13 @@ Log4j中所提供的转换pattern如下所示：
 - %c{1.1.~.~}，org.apache.common.test.Foo，o.a.~.~.Foo
 - %c{.}，org.apache.common.test.Foo，....Foo
 
-**`C{precision}`或`class{precision}`**
+**2. `C{precision}`或`class{precision}`**
 
 输出发出日志记录请求的调用者的全限定类名称。该转换说明符可以选择跟随精度说明符，该说明符遵循与记录器名称转换器相同的规则。
 
 生成调用方的类名（位置信息）是一项大开销的操作，可能会影响性能。谨慎使用。
 
-**`d{pattern}`或`date{pattern}`**
+**3. `d{pattern}`或`date{pattern}`**
 
 输出记录事件的日期。日期转换说明符后面可以跟着一组大括号，其中包含每个SimpleDateFormat的日期和时间模式字符串。
 
@@ -282,25 +282,25 @@ Log4j中所提供的转换pattern如下所示：
 
 示例如下：
 
-- %d{DEFAULT}，2012-11-02 14:34:02,781
-- %d{ISO8601}，2012-11-02T14:34:02,781
-- %d{ISO8601_BASIC}，20121102T143402,781
-- %d{ABSOLUTE}，14:34:02,781
-- %d{DATE}，02 Nov 2012 14:34:02,781
-- %d{COMPACT}，20121102143402781
-- %d{HH:mm:ss,SSS}，14:34:02,781
-- %d{dd MMM yyyy HH:mm:ss,SSS}，02 Nov 2012 14:34:02,781
-- %d{HH:mm:ss}{GMT+0}，18:34:02
-- %d{UNIX}，1351866842
-- %d{UNIX_MILLIS}，1351866842781
+- `%d{DEFAULT}`，2012-11-02 14:34:02,781
+- `%d{ISO8601}`，2012-11-02T14:34:02,781
+- `%d{ISO8601_BASIC}`，20121102T143402,781
+- `%d{ABSOLUTE}`，14:34:02,781
+- `%d{DATE}`，02 Nov 2012 14:34:02,781
+- `%d{COMPACT}`，20121102143402781
+- `%d{HH:mm:ss,SSS}`，14:34:02,781
+- `%d{dd MMM yyyy HH:mm:ss,SSS}`，02 Nov 2012 14:34:02,781
+- `%d{HH:mm:ss}{GMT+0}`，18:34:02
+- `%d{UNIX}`，1351866842
+- `%d{UNIX_MILLIS}`，1351866842781
 
-%d{UNIX}以秒为单位输出UNIX时间。%d{UNIX_MILLIS}以毫秒为单位输出UNIX时间。UNIX时间是以1970年1月1日的UTC午夜时间为基准计算当前时间和它之间以毫秒为单位的时间。虽然时间单位是毫秒，但粒度取决于操作系统（Windows）。因为只有从long到String的转换发生并且不涉及日期格式，所以这种输出事件时间的方式很有效。
+`%d{UNIX}`以秒为单位输出UNIX时间。`%d{UNIX_MILLIS}`以毫秒为单位输出UNIX时间。UNIX时间是以1970年1月1日的UTC午夜时间为基准计算当前时间和它之间以毫秒为单位的时间。虽然时间单位是毫秒，但粒度取决于操作系统（Windows）。因为只有从long到String的转换发生并且不涉及日期格式，所以这种输出事件时间的方式很有效。
 
-**`enc{pattren}{[HTML|XML|JSON|CRLF]}`或`encode{pattren}{[HTML|XML|JSON|CRLF]}`**
+**4. `enc{pattren}{[HTML|XML|JSON|CRLF]}`或`encode{pattren}{[HTML|XML|JSON|CRLF]}`**
 
 以特定标记语言输出合适的编码和转义字符。默认情况下，如果只指定了一个选项，则这将对HTML进行编码。第二个选项用于指定应使用哪种编码格式。此转换器对编码用户提供的数据非常有用，以便输出数据不会被错误地或不安全地写入。
 
-一种典型的编码消息用法是`%enc{%m}`，但用户输入也可能来自其他位置，例如MDC`%enc{%mdc{key}}`。
+一种典型的编码消息用法是`%enc{ %m }`，但用户输入也可能来自其他位置，例如MDC`%enc{ %mdc{key}}`。
 
 使用HTML编码格式，下列字符将被替换：
 
@@ -318,19 +318,19 @@ Log4j中所提供的转换pattern如下所示：
 - `"`：`\"`
 - `\`：`\\`
 
-例如，{"message": "%enc{%m}{JSON}"}可用于输出包含将日志消息作为String值的有效JSON文档。
+例如，{"message": "%enc{ %m}{JSON}"}可用于输出包含将日志消息作为String值的有效JSON文档。
 
 使用CRLF编码格式，替换下列字符：
 
 - `'\r', '\n'`：将被分别转换为`'\\r', '\\n'`。
 
-**`equals{pattern}{test}{substitution}`或`equalsIgnoreCase{test}{substitution}`**
+**5. `equals{pattern}{test}{substitution}`或`equalsIgnoreCase{test}{substitution}`**
 
 将使用{substitution}中的字符串，替换{test}中的字符串，从而对字符串进行评估。例如，`%equals{[%marker]}{[]}{}`将替换由无Marker的日志事件所产生的`[]`为空字符串。
 
 该模式可以是任意复杂的，特别是可以包含多个转换关键字。
 
-**`ex|exception|throwable{["none"|"full"|depth|"short"|short.className"|"short.fileName"|"short.lineNumber"|"short.methodName"|"short.message"|"short.localizedMessage"]}[,filters(package,package,...)][,separator(separator)]}{suffix(pattern)}`**
+**6. `ex|exception|throwable{["none"|"full"|depth|"short"|short.className"|"short.fileName"|"short.lineNumber"|"short.methodName"|"short.message"|"short.localizedMessage"]}[,filters(package,package,...)][,separator(separator)]}{suffix(pattern)}`**
 
 输出绑定到日志记录事件的Throwable trace，默认情况下，这将输出完整的trace，通常通过调用Throwable.printStackTrace()实现。
 
@@ -349,11 +349,11 @@ Log4j中所提供的转换pattern如下所示：
 - 使用`separator`字符串来分隔堆栈跟踪的行。例如：`separator(|)`。缺省值是`line.separator`系统属性，该属性取决于操作系统。
 - 仅当存在throwable字符时才使用`ex{suffix(pattern)}`将pattern的输出添加到输出中。
 
-**`F`或`file`**
+**7. `F`或`file`**
 
 输出发出记录请求的文件名。生成文件信息（位置信息）是一项高开销的操作，可能会影响性能。谨慎使用。
 
-**`highlight{pattern}{sytle}`**
+**8. `highlight{pattern}{sytle}`**
 
 根据当前事件日志记录级别，将ANSI颜色添加到enclosed pattern的结果中。（请参阅Jansi配置。）
 每个级别的默认颜色是：
@@ -367,37 +367,37 @@ Log4j中所提供的转换pattern如下所示：
 
 使用默认颜色：
 
-`%highlight{%d [%t] %-5level: %msg%n%throwable}`。
+`%highlight{ %d [%t] %-5level: %msg%n%throwable}`。
 
 通过{style}选项覆盖默认颜色设置：
 
-`%highlight{%d [%t] %-5level: %msg%n%throwable}{FATAL=white, ERROR=red, WARN=blue, INFO=black, DEBUG=green, TRACE=blue}`。
+`%highlight{ %d [%t] %-5level: %msg%n%throwable}{FATAL=white, ERROR=red, WARN=blue, INFO=black, DEBUG=green, TRACE=blue}`。
 
 可以只高亮日志事件的一部分：
 
-`%d [%t] %highlight{%-5level: %msg%n%throwable}`
+`%d [%t] %highlight{ %-5level: %msg%n%throwable}`
 
 可以风格化消息的一部分并高亮剩下的部分：
 
-`%style{%d [%t]}{black} %highlight{%-5level: %msg%n%throwable}`
+`%style{ %d [%t]}{black} %highlight{ %-5level: %msg%n%throwable}`
 
 也可以使用STYLE键：
 
-`%highlight{%d [%t] %-5level: %msg%n%throwable}{STYLE=Logback}`
+`%highlight{ %d [%t] %-5level: %msg%n%throwable}{STYLE=Logback}`
 
-**`K{key}`或`map{key}`或`MAP{key}`**
+**9. `K{key}`或`map{key}`或`MAP{key}`**
 
-输出MapMessage中的条目（如果事件中存在MapMessage）。K转换字符之后的大括号之间放置映射关键字，如`%K{clientNumber}`，其中clientNumber是关键字。Map中对应于该键的值将输出。如果没有指定附加的子选项，那么Map键值对集合的全部内容使用格式`{{key1,val1},{key2,val2}}`输出。
+输出MapMessage中的条目（如果事件中存在MapMessage）。K转换字符之后的大括号之间放置映射关键字，如`%K{clientNumber}`，其中clientNumber是关键字。Map中对应于该键的值将输出。如果没有指定附加的子选项，那么Map键值对集合的全部内容使用格式`{ {key1,val1},{key2,val2} }`输出。
 
-**`l`或`location`**
+**10. `l`或`location`**
 
-输出产生记录事件的调用者的位置信息。位置信息取决于JVM的实现，但通常由调用方法的完全限定名称组成，后跟调用者输入文件名和行号（放在括号内）。生成位置信息是一项高负载的操作，可能会影响性能。谨慎使用。
+输出产生记录事件的调用者的位置信息。位置信息取决于JVM的实现，但通常由调用方法的完全限定名称组成，后跟调用者输入文件名和行号（放在括号内）。生成位置信息是一项高开销的操作，可能会影响性能。谨慎使用。
 
-**`L`或`line`**
+**11. `L`或`line`**
 
 输出发出日志记录请求的行号。生成行号信息（位置信息）是一项高负载的操作，可能会影响性能。谨慎使用。
 
-**`m{nolookups}{ansi}`或`msg{nolookups}{ansi}`或`message{nolookups}{ansi}`**
+**12. `m{nolookups}{ansi}`或`msg{nolookups}{ansi}`或`message{nolookups}{ansi}`**
 
 输出应用程序提供的与记录事件相关的消息。添加`{ansi}`以使用ANSI转义代码呈现消息（需要JAnsi）。
 
@@ -415,41 +415,41 @@ Log4j中所提供的转换pattern如下所示：
 
 使用`{nolookups}`来记录如`${date:YYYY-MM-dd}`消息，而不使用任何lookup。通常情况下，调用`logger.info("Try ${date:YYYY-MM-dd}")`将用实际日期替换日期模板`${date:YYYY-MM-dd}`。使用nolookups将禁用此功能并原样记录消息字符串。
 
-**`M`或`method`**
+**13. `M`或`method`**
 
-输出发出日志记录请求的方法名称。生成调用方的方法名称（位置信息）是一项高负载操作，可能会影响性能。谨慎使用。
+输出发出日志记录请求的方法名称。生成调用方的方法名称（位置信息）是一项高开销操作，可能会影响性能。谨慎使用。
 
-**`marker`**
+**14. `marker`**
 
 如果有marker，则输出其的全名，包含其父类。
 
-**`markerSimpleName`**
+**15. `markerSimpleName`**
 
 如果有marker，则输出其的简称，不包含其父类。
 
-**`maxLen`或`maxLength`**
+**16. `maxLen`或`maxLength`**
 
 输出经过评估的pattern并截断结果的结果。如果长度大于20，则输出将包含尾随省略号。如果提供的长度无效，则使用默认值100。
 
-语法示例：`%maxLen{%p: %c{1} - %m%notEmpty{ =>%ex{short}}}{160}`将被限制为160个字符，并带有尾部省略号。另一个示例：`%maxLen{%m}{20}`将限制为20个字符，并且不会有结尾省略号。
+语法示例：`%maxLen{ %p: %c{1} - %m%notEmpty{ =>%ex{short}}}{160}`将被限制为160个字符，并带有尾部省略号。另一个示例：`%maxLen{ %m}{20}`将限制为20个字符，并且不会有结尾省略号。
 
-**`n`**
+**17. `n`**
 
 输出平台相关的行分隔符字符。此转换字符与使用non-portable行分隔符字符串（如`\n`或`\r\n`）的性能几乎相同。因此，它是指定行分隔符的首选方式。
 
-**`N`或`nano`**
+**18. `N`或`nano`**
 
 在日志记录事件被创建时输出`System.nanoTime()`的执行结果。
 
-**`pid{[defaultValue]}`或`processId{[defaultValue]}`**
+**19. `pid{[defaultValue]}`或`processId{[defaultValue]}`**
 
 如果基础平台支持，则输出进程ID。如果平台不支持进程ID，则可以指定一个可选的缺省值。
 
-**`variablesNotEmpty{pattern}`或`varsNotEmpty{pattern}`或`notEmpty{pattern}`**
+**20. `variablesNotEmpty{pattern}`或`varsNotEmpty{pattern}`或`notEmpty{pattern}`**
 
 当且仅当pattern中的所有变量都不为空时，输出pattern的评估结果。比如：`%notEmpty{[%marker]}`。
 
-**`p|level{level=label, level=label, ...}`或`p|level{length=n}`或`p|level{lowerCase=true|false}`**
+**21. `p|level{level=label, level=label, ...}`或`p|level{length=n}`或`p|level{lowerCase=true|false}`**
 
 输出记录事件的级别。使用`level = value，level = value`的形式提供级别名称映射，其中level是级别的名称，value是应显示的值而不是Level的名称。
 
@@ -461,18 +461,17 @@ Log4j中所提供的转换pattern如下所示：
 
 最后，您可以输出小写的级别名称（默认为大写）：`%level{lowerCase=true}`。
 
-**`r`或`relative`**
+**22. `r`或`relative`**
 
 输出自JVM启动直到创建记录事件以来经过的毫秒数。
 
-**`replace{pattern}{regex}{substitution}`**
+**23. `replace{pattern}{regex}{substitution}`**
 
-在pattern的计算结果中，使用在{substitution}中定义的字符串替换{regex}的正则。例如，`%replace{%msg}{\s}{}`将删除事件消息中包含的所有空格。
+在pattern的计算结果中，使用在{substitution}中定义的字符串替换{regex}的正则。例如，`%replace{ %msg}{\s}{}`将删除事件消息中包含的所有空格。
 
-该pattern可以是任意复杂的，特别是可以包含多个转换关键字。例如，`%replace {%logger %msg}{\.}{/}`将用正斜杠替换记录器中的所有`.`或事件的消息。
+该pattern可以是任意复杂的，特别是可以包含多个转换关键字。例如，`%replace { %logger %msg}{\.}{/}`将用正斜杠替换记录器中的所有`.`或事件的消息。
 
-
-**`rEx|rException|rThrowable{["none"|"short"|"full"|depth][,filters(package,package,...)][,separator(separator)]}{ansi(Key=Value,Value,... Key=Value,Value,... ...)}{suffix(pattern)}`**
+**24. `rEx|rException|rThrowable{["none"|"short"|"full"|depth][,filters(package,package,...)][,separator(separator)]}{ansi(Key=Value,Value,... Key=Value,Value,... ...)}{suffix(pattern)}`**
 
 与`%throwable`转换词相同，但是打印堆栈跟踪时会从第一个抛出的异常开始，然后是每个后续的包装异常。
 
@@ -486,31 +485,31 @@ Log4j中所提供的转换pattern如下所示：
 
 仅当存在throwable的打印时，才使用`rEx{suffix(pattern)}`将pattern的输出添加到输出。
 
-**`sn`或`sequenceNumber`**
+**25. `sn`或`sequenceNumber`**
 
 包括在每个事件中都会增加的序列号。该计数器是一个静态变量，因此在共享相同转换器Class对象的应用程序中只会是唯一的。
 
-**`style{pattern}{ANSI style}`**
+**26. `style{pattern}{ANSI style}`**
 
 使用ANSI转义序列对封闭模式的结果进行样式设置。 样式可以由下表中由逗号分隔的样式名称列表组成。详表见官方文档。示例如下所示：
 
-`%style{%d{ISO8601}}{black} %style{[%t]}{blue} %style{%-5level:}{yellow} %style{%msg%n%throwable}{green}`。
+`%style{ %d{ISO8601}}{black} %style{[%t]}{blue} %style{ %-5level:}{yellow} %style{ %msg%n%throwable}{green}`。
 
-合并样式：`%d %highlight{%p} %style{%logger}{bright,cyan} %C{1.} %msg%n`。
+合并样式：`%d %highlight{ %p} %style{ %logger}{bright,cyan} %C{1.} %msg%n`。
 
 可以使用`%`后跟颜色`%black, %blue, %cyan`，比如：
 
-`%black{%d{ISO8601}} %blue{[%t]} %yellow{%-5level:} %green{%msg%n%throwable}`
+`%black{ %d{ISO8601}} %blue{[%t]} %yellow{ %-5level:} %green{ %msg%n%throwable}`
 
-**`T`或`tid`或`threadId`**：输出产生日志事件的线程ID。
+**27. `T`或`tid`或`threadId`**：输出产生日志事件的线程ID。
 
-**`t`或`tn`或`thread`或`threadName`**：输出产生日志事件的线程名称。
+**28. `t`或`tn`或`thread`或`threadName`**：输出产生日志事件的线程名称。
 
-**`tp`或`threadPriority`**：输出产生日志事件的线程优先级。
+**29. `tp`或`threadPriority`**：输出产生日志事件的线程优先级。
 
-**`x`或`NDC`**：输出产生记录事件的线程相关联的线程上下文栈（也称为嵌套诊断上下文或NDC）。
+**30. `x`或`NDC`**：输出产生记录事件的线程相关联的线程上下文栈（也称为嵌套诊断上下文或NDC）。
 
-**`X{key[,key2...]}`或`mdc{key[,key2...]}`或`MDC{key[,key2...]}`**
+**31. `X{key[,key2...]}`或`mdc{key[,key2...]}`或`MDC{key[,key2...]}`**
 
 输出产生记录事件的线程相关联的线程上下文栈（也称为嵌套诊断上下文或NDC）。在X转换字符后面可以使用大括号中放置一个或多个键的映射表，如`%X{clientNumber}`，其中clientNumber是键。将输出对应于该键在MDC中的值。
 
@@ -520,18 +519,297 @@ Log4j中所提供的转换pattern如下所示：
 
 有关更多详细信息，请参阅ThreadContext类。
 
-**`u{"RANDOM"|"TIME"}`或`uuid`**
+**32. `u{"RANDOM"|"TIME"}`或`uuid`**
 
 包含随机或基于时间的UUID。基于时间的UUID是一种Type1 UUID，每毫秒最多可生成10,000个唯一标识（将使用每个主机的MAC地址），并尝试确保同一主机上的多个JVM和/或ClassLoaders具有在0和16,384之间的唯一随机数将与UUID生成器Class的每个实例相关联并且包含在每个生成的基于时间的UUID中。由于基于时间的UUID包含MAC地址和时间戳，因此它们应该小心使用，因为它们可能会导致安全漏洞。
 
+**33. `xEx|xException|xThrowable`**
+
+**34. `%`**：`%%`序列将输出单个百分号。
+
+默认情况下，相关信息按原样输出。但是，借助格式修改器，可以更改最小字段宽度，最大字段宽度和对齐方式。
+
+可选的格式修饰符位于百分号和转换字符之间。
+
+第一个可选的格式修饰符是左对齐标志，它只是减号`(-)`字符。然后是可选的最小字段宽度，这是一个十进制常量，表示要输出的最少字符数。如果数据项需要较少的字符，则将其填充到左侧或右侧，直到达到最小宽度。默认是填充左边（右对齐），但您可以使用左对齐标志指定正确的填充，填充字符是空格。如果数据项大于最小字段宽度，则字段将扩展以适应数据，该值永远不会被截断。
+
+还可以使用最大字段宽度修饰符进行更改，该修饰符由一个句点和一个小数常数指定。如果数据项长于最大字段，则额外的字符将从数据项的开头移除而不是从最后移除。例如，最大字段宽度为8，数据项为10个字符长，则数据项的前两个字符将被丢弃。这种行为偏离了C语言中的printf函数从最后开始截断的特点。
+
+可以通过在该时间段之后追加减号来从结尾截断。在这种情况下，如果最大字段宽度为8，数据项的长度为10个字符，则数据项的最后两个字符将被丢弃。
+
+#### ANSI Styling on Windows
+
+ANSI转义序列在许多平台上本机支持，但在Windows上不默认。要启用ANSI支持，请将Jansi jar添加到您的应用程序，并将属性log4j.skipJansi设置为false。 这允许Log4j在写入控制台时使用Jansi添加ANSI转义码。
+
+注：在Log4j 2.10之前，Jansi默认启用。 Jansi需要本地代码的事实意味着Jansi只能由一个类加载器加载。对于Web应用程序来说，这意味着Jansi jar必须位于Web容器的类路径中。为避免导致Web应用程序出现问题，从Log4j 2.10开始如果显式配置，则Log4j将不再自动尝试加载Jansi。
+
+#### Example Patterns
+
+**Filtered Throwables**
+
+此示例显示如何在堆栈跟踪中过滤掉的非重要包中的类。
+
+```xml
+<properties>
+  <property name="filters">org.junit,org.apache.maven,sun.reflect,java.lang.reflect</property>
+</properties>
+...
+<PatternLayout pattern="%m%xEx{filters(${filters})}%n"/>
+```
+
+**ANSI Styled**
+
+日志级别将根据事件的日志级别高亮显示。所有跟随该级别的内容都将呈现亮绿色。
+
+```xml
+<PatternLayout>
+  <pattern>%d %highlight{ %p} %style{ %C{1.} [%t] %m}{bold,green}%n</pattern>
+</PatternLayout>
+```
+
+#### Pattern Selectors
+
+可以使用PatternSelector配置PatternLayout，以允许它根据日志事件的属性或其他因素选择要使用的模式。PatternSelector通常会配置defaultPattern属性，在其他条件不匹配时使用；以及一组PatternMatch元素，用于标识可选的各种模式。
+
+**MarkerPatternSelector**
+
+MarkerPatternSelector根据日志事件中包含的Marker选择模式。如果日志事件中的Marker等于或是PatternMatch键属性上指定的名称的祖先，则将使用该PatternMatch元素上指定的模式。
+
+```xml
+<PatternLayout>
+  <MarkerPatternSelector defaultPattern="[%-5level] %c{1.} %msg%n">
+    <PatternMatch key="FLOW" pattern="[%-5level] %c{1.} ====== %C{1.}.%M:%L %msg ======%n"/>
+  </MarkerPatternSelector>
+</PatternLayout>
+```
+
+**ScriptPatternSelector**
+
+ScriptPatternSelector执行Configuration章节Scripts部分描述的脚本。该脚本将传递配置中的Properties部分中所配置的所有属性，如在substitutor变量中由Configuration使用的StrSubstitutor；在logEvent变量中的日志事件；预期会返回PatternMatch的值；或者如果应该使用默认模式，则为null。
+
+```xml
+<PatternLayout>
+  <ScriptPatternSelector defaultPattern="[%-5level] %c{1.} %C{1.}.%M.%L %msg%n">
+    <Script name="BeanShellSelector" language="bsh"><![CDATA[
+      if (logEvent.getLoggerName().equals("NoLocation")) {
+        return "NoLocation";
+      } else if (logEvent.getMarker() != null && logEvent.getMarker().isInstanceOf("FLOW")) {
+        return "Flow";
+      } else {
+        return null;
+      }]]>
+    </Script>
+    <PatternMatch key="NoLocation" pattern="[%-5level] %c{1.} %msg%n"/>
+    <PatternMatch key="Flow" pattern="[%-5level] %c{1.} ====== %C{1.}.%M:%L %msg ======%n"/>
+  </ScriptPatternSelector>
+</PatternLayout>
+```
+
 ### 8.6 RFC5424 Layout
+
+顾名思义，Rfc5424Layout根据RFC5424（增强型Syslog规范）格式化LogEvents。尽管规范主要针对通过Syslog发送消息，但此格式对于其他目的非常有用，因为项目作为self-describing键值对在消息中传递。
+
+RFC5452Layout的参数如下所示：
+
+- `appName，String`：在RFC5424 syslog记录中用作APPNAME的值。
+- `charset，String`：将syslog字符串转换为字节数组时使用的字符集。该字符串必须是有效的字符集。如果未指定，则将使用系统默认字符集。
+- `enterpriseNumber，integer`：RFC5424中所述的IANA企业编号。
+- `exceptionPattern，String`：PatternLayout中的一个转换说明符，它定义了用于格式化异常的ThrowablePatternConverter。可以包含对这些说明符有效的任何选项。缺省情况下，在输出中不包括来自事件的Throwable（如果有）。
+- `facility，String`：facility用于尝试对消息进行分类。facility选项必须设置为“KERN”，“USER”，“MAIL”，“DAEMON”，“AUTH”，“SYSLOG”，“LPR”，“NEWS”，“UUCP”，“CRON”，“AUTHPRIV”，“FTP”，“NTP”，“AUDIT”，“ALERT”，“CLOCK”，“LOCAL0”，“LOCAL1”，“LOCAL2”，“LOCAL3”，“LOCAL4”，“LOCAL5”，“LOCAL6”，或“LOCAL7”。这些值可能为大写或小写字符。
+- `format，String`：如果设置为“RFC5424”，数据将根据RFC5424格式化。否则，它将被格式化为BSD Syslog记录。请注意，虽然BSD Syslog记录要求为1024字节或更短，但SyslogLayout不会截断它们。RFC5424Layout也不会截断记录，因为接收器必须接受长达2048字节的记录，并可能接受更长的记录。
+- `id，String`：当进行格式化时根据RFC5424所使用的默认结构化数据ID。如果LogEvent包含StructuredDataMessage，则将使用来自消息的ID代替此值。
+- `includeMDC，boolean`：指示来自ThreadContextMap的数据是否将包含在RFC5424 Syslog记录中。默认为true。
+- `loggerFields，List of KeyValuePairs`：允许将任意PatternLayout模式作为指定的ThreadContext字段包含在内；未指定默认值。使用时请包含LoggerFields嵌套元素，其中包含一个或多个KeyValuePair元素。每个KeyValuePair 必须具有一个key属性，该属性指定将用于标识MDC Structured Data元素内的字段的键名；以及一个value属性，其指定了要用作值的PatternLayout模式。
+- `mdcExcludes，String`：应该从LogEvent中排除的的mdc键列表（使用逗号分隔）。这与mdcIncludes属性是互斥的。该属性仅适用于RFC5424 syslog记录。
+- `mdcIncludes，String`：应该包含在FlumeEvent中的mdc键列表（使用逗号分隔）。列表中未找到的任何MDC密钥都将被排除。该选项与mdcExcludes属性互斥。该属性仅适用于RFC5424 syslog记录。
+- `mdcRequired，String`：必须存在于MDC中的mdc键列表（使用逗号分隔）。如果某个键不存在，则会抛出LoggingException。该属性仅适用于RFC5424 syslog记录。
+- `mdcPrefix，String`：应该为每个MDC密钥添加前缀以便将其与event属性区分开。默认字符串是“mdc：”。该属性仅适用于RFC5424 syslog记录。
+- `mdcId，String`：必需的MDC ID。该属性仅适用于RFC 5424 syslog记录。
+- `messageId，String`：在RFC5424 syslog记录的MSGID字段中使用的默认值。
+- `newLine，boolean`：如果为true，则将在syslog记录的末尾附加一个换行符。默认值是false。
+- `newLineEscape`，String：应该用来替换消息文本中的换行符的字符串。
 
 ### 8.7 Serialized Layout
 
+SerializedLayout只需使用Java Serialization将LogEvent序列化为一个字节数组。SerializedLayout不接受任何参数。
+
+从版本2.9开始，此layout已被弃用。Java Serialization具有固有的安全弱点，不再推荐使用这种layout。包含相同信息的替代layout是JsonLayout，配置为`properties="true"`。
+
 ### 8.8 Syslog Layout
+
+SyslogLayout将LogEvent格式化为与Log4j1.2使用的相同格式匹配的BSD Syslog记录。
+
+Syslog参数如下所示：
+
+- `charset，String`：将syslog字符串转换为字节数组时使用的字符集。该字符串必须是有效的字符集。如果未指定，则将使用系统默认字符集。
+- `facility，String`：facility用于尝试对消息进行分类。facility选项必须设置为“KERN”，“USER”，“MAIL”，“DAEMON”，“AUTH”，“SYSLOG”，“LPR”，“NEWS”，“UUCP”，“CRON”，“AUTHPRIV”，“FTP”，“NTP”，“AUDIT”，“ALERT”，“CLOCK”，“LOCAL0”，“LOCAL1”，“LOCAL2”，“LOCAL3”，“LOCAL4”，“LOCAL5”，“LOCAL6”，或“LOCAL7”。这些值可能为大写或小写字符。
+- `newLine，boolean`：如果为true，则将在syslog记录的末尾附加一个换行符。默认值是false。
+- `newLineEscape`，String：应该用来替换消息文本中的换行符的字符串。
 
 ### 8.9 XML Layout
 
+append一系列在log4j.dtd中定义的Event元素。
+
+#### Complete well-formed XML vs fragment XML
+
+如果您配置`complete="true"`，则appender会输出well-formed XML文档，其默认名称空间是Log4j名称空间`"http://logging.apache.org/log4j/2.0/events"`。默认情况下，使用`complete="false"`时，应该将输出作为external entity包含在单独的文件中以形成well-formed XML文档，在这种情况下，appender使用默认为log4j的namespacePrefix。
+
+一个well-formed XML文档遵循如下：
+
+```xml
+<Event xmlns="http://logging.apache.org/log4j/2.0/events"
+       timeMillis="1493122559666"
+       level="INFO"
+       loggerName="HelloWorld"
+       endOfBatch="false"
+       thread="main"
+       loggerFqcn="org.apache.logging.log4j.spi.AbstractLogger"
+       threadId="1"
+       threadPriority="5">
+  <Marker name="child">
+    <Parents>
+      <Marker name="parent">
+        <Parents>
+          <Marker name="grandparent"/>
+        </Parents>
+      </Marker>
+    </Parents>
+  </Marker>
+  <Message>Hello, world!</Message>
+  <ContextMap>
+    <item key="bar" value="BAR"/>
+    <item key="foo" value="FOO"/>
+  </ContextMap>
+  <ContextStack>
+    <ContextStackItem>one</ContextStackItem>
+    <ContextStackItem>two</ContextStackItem>
+  </ContextStack>
+  <Source
+      class="logtest.Main"
+      method="main"
+      file="Main.java"
+      line="29"/>
+  <Thrown commonElementCount="0" message="error message" name="java.lang.RuntimeException">
+    <ExtendedStackTrace>
+      <ExtendedStackTraceItem
+          class="logtest.Main"
+          method="main"
+          file="Main.java"
+          line="29"
+          exact="true"
+          location="classes/"
+          version="?"/>
+    </ExtendedStackTrace>
+  </Thrown>
+</Event>
+```
+
+如果`complete="false"`，则appender不会写入XML处理指令和根元素。
+
+#### Marker
+
+Marker由Event元素中的Marker元素表示。Marker元素仅在日志消息中使用marker时出现。marker的父项的名称将在Marker元素的parent属性中提供。
+
+#### Pretty vs compact XML
+
+默认情况下，设置compact="false"使XML布局不紧凑（a.k.a.不"pretty"），这意味着appender使用行尾字符和缩进行来格式化XML。如果compact="true"，则不使用行尾或缩进。当然Message内容可能包含行尾。
+
+JsonLayout参数如下所示：
+
+- `charset，String`：转换为字节数组时使用的字符集。该值必须是有效的字符集。如果未指定，将使用UTF-8。
+- `compact，boolean`：如果为true，则appender不使用尾行和缩进。默认为false。
+- `complete，boolean`：如果为true，则Appender包含XML的页眉和页脚，以及记录之间的逗号。默认为false。
+- `properties，boolean`：如果为true，则appender将在生成的XML中包含线程上下文映射。默认为false。
+- `locationInfo，boolean`：如果为true，则appender会在生成的XML中包含位置信息。默认为false。生成位置信息是一项大开销的操作，可能会影响性能。谨慎使用。
+- `includeStacktrace，boolean`：如果为true，则包含任何记录的Throwable的完整堆栈跟踪（可选，默认为true）。
+- `stacktraceAsString，boolean`：是否将stacktrace格式化为字符串而不是嵌套对象（可选，默认为false）。
+- `includeNullDelimiter，boolean`：是否在每个事件之后包含NULL字节作为分隔符（可选，默认为false）。
+
+要在输出中包含任何自定义字段，请使用以下语法：
+
+```xml
+<XmlLayout>
+  <KeyValuePair key="additionalField1" value="constant value"/>
+  <KeyValuePair key="additionalField2" value="$${ctx:key}"/>
+</XmlLayout>
+```
+
+自定义字段总是最后一个，按其声明的顺序排列。
+
 ### 8.10 YAML Layout
 
+将一系列YAML事件append为字节序列化的字符串。
+
+YAML日志事件遵循以下模式：
+
+```yaml
+---
+timeMillis: 1493122307075
+thread: "main"
+level: "INFO"
+loggerName: "HelloWorld"
+marker:
+ name: "child"
+ parents:
+ - name: "parent"
+   parents:
+   - name: "grandparent"
+message: "Hello, world!"
+thrown:
+ commonElementCount: 0
+ message: "error message"
+ name: "java.lang.RuntimeException"
+ extendedStackTrace:
+ - class: "logtest.Main"
+   method: "main"
+   file: "Main.java"
+   line: 29
+   exact: true
+   location: "classes/"
+   version: "?"
+contextStack:
+- "one"
+- "two"
+endOfBatch: false
+loggerFqcn: "org.apache.logging.log4j.spi.AbstractLogger"
+contextMap:
+ bar: "BAR"
+ foo: "FOO"
+threadId: 1
+threadPriority: 5
+source:
+ class: "logtest.Main"
+ method: "main"
+ file: "Main.java"
+ line: 29
+```
+
+YamlLayout参数如下所示：
+
+- `charset，String`：转换为字节数组时使用的字符集。该值必须是有效的字符集。如果未指定，将使用UTF-8。
+- `properties，boolean`：如果为true，则appender将在生成的YAML中包含线程上下文映射。默认为false。
+- `locationInfo，boolean`：如果为true，则appender会在生成的YAML中包含位置信息。默认为false。生成位置信息是一项大开销的操作，可能会影响性能。谨慎使用。
+- `includeStacktrace，boolean`：如果为true，则包含任何记录的Throwable的完整堆栈跟踪（可选，默认为true）。
+- `stacktraceAsString，boolean`：是否将stacktrace格式化为字符串而不是嵌套对象（可选，默认为false）。
+- `includeNullDelimiter，boolean`：是否在每个事件之后包含NULL字节作为分隔符（可选，默认为false）。
+
+要在输出中包含任何自定义字段，请使用以下语法：
+
+```xml
+<YamlLayout>
+  <KeyValuePair key="additionalField1" value="constant value"/>
+  <KeyValuePair key="additionalField2" value="$${ctx:key}"/>
+</YamlLayout>
+```
+
+自定义字段总是最后一个，按其声明的顺序排列。
+
 ### 8.11 Location Information
+
+如果其中一个layout配置了位置相关属性（如HTML locationInfo），或者其中一个模式`%C`或`%class`，`%F`或`%file`，`%l`或`%location`，`%L`或`%line`，`%M`或`%method`，Log4j将对堆栈快照，然后进行栈跟踪以查找位置信息。
+
+这是一项高开销的操作：对同步的logger来说，速度要慢1.3至5倍。同步logger在进行堆栈快照前尽可能长时间地等待。如果不需要位置，则不会拍摄快照。
+
+但是，异步logger需要在将日志消息传递给另一个线程之前作出此决定；该点后位置信息将会丢失。采用堆栈跟踪快照对异步logger的性能影响比同步的更高：使用位置记录比没有位置记录慢30-100倍。出于这个原因，异步记录器和异步appender默认不包含位置信息。
+
+您可以通过指定`includeLocation = "true"`来覆盖logger或异步appender配置中的默认行为。
