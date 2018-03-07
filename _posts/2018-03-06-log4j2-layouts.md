@@ -103,7 +103,7 @@ HtmlLayout生成一个HTML页面并将每个LogEvent添加到表中的一行。H
 
 - `charset，String`：将HTML字符串转换为字节数组时使用的字符集。该值必须是有效的字符集。如果未指定，则此布局使用UTF-8。
 - `contentType，String`：要分配给Content-Type header的值。默认值是“text/html”。
-- `locationInfo，boolean`：如果为true，则文件名和行号将包含在HTML输出中。默认值是false。生成位置信息是一项昂贵的操作，可能会影响性能。谨慎使用。
+- `locationInfo，boolean`：如果为true，则文件名和行号将包含在HTML输出中。默认值是false。生成位置信息是一项大开销的操作，可能会影响性能。谨慎使用。
 - `title，String`：将显示为HTML标题的字符串。
 - `fontName，String`：要使用的font-family。默认值是“arial，sans-serif”。
 - `fontSize，String`：要使用的font-size。默认值是“小”。
@@ -180,7 +180,7 @@ JsonLayout参数如下所示：
 - `complete，boolean`：如果为true，则Appender包含JSON的页眉和页脚，以及记录之间的逗号。默认为false。
 - `properties，boolean`：如果为true，则appender将在生成的JSON中包含线程上下文映射。默认为false。
 - `propertiesAsList，boolean`：如果为true，则线程上下文映射将作为映射条目对象列表包含，其中每个条目都有key属性（其值为可以）和value属性（其值为value）。默认为false，在这种情况下，线程上下文映射被包含为键值对的简单映射。
-- `locationInfo，boolean`：如果为true，则appender会在生成的JSON中包含位置信息。默认为false。生成位置信息是一项昂贵的操作，可能会影响性能。谨慎使用。
+- `locationInfo，boolean`：如果为true，则appender会在生成的JSON中包含位置信息。默认为false。生成位置信息是一项大开销的操作，可能会影响性能。谨慎使用。
 - `includeStacktrace，boolean`：如果为true，则包含任何记录的Throwable的完整堆栈跟踪（可选，默认为true）。
 - `stacktraceAsString，boolean`：是否将stacktrace格式化为字符串而不是嵌套对象（可选，默认为false）。
 - `includeNullDelimiter，boolean`：是否在每个事件之后包含NULL字节作为分隔符（可选，默认为false）。
@@ -197,6 +197,332 @@ JsonLayout参数如下所示：
 自定义字段总是最后一个，按其声明的顺序排列。
 
 ### 8.5 Pattern Layout
+
+配置pattern string可构成灵活的layout，此类的目标是格式化LogEvent并返回结果。结果的格式取决于conversion pattern。
+
+其conversion pattern与C语言中printf函数的转换模式密切相关。转换模式由称为转换说明符的文本文本和格式控制表达式组成。
+
+请注意，任何文字文本（包括特殊字符）都可能包含在转换模式中。特殊字符包括\t，\n，\r，\f。使用\ \在输出中插入一个反斜杠。
+
+每个转换说明符以百分号（%）开头，后跟可选的format modifier和conversion character。转换字符指定数据的类型，例如类别，优先级，日期，线程名称。格式修饰符控制诸如字段宽度，填充，左右对齐之类的东西。以下是一个简单的例子。
+
+让转换模式为`%-5p [%t]: %m%n`，并假定Log4j环境设置为使用PatternLayout。然后声明如下：
+
+```java
+Logger logger = LogManager.getLogger("MyLogger");
+logger.debug("Message 1");
+logger.warn("Message 2");
+```
+
+这将输出：
+
+```
+DEBUG [main]: Message 1
+WARN  [main]: Message 2
+```
+
+请注意，文本和转换说明符之间没有明确的分隔符。pattern解析器在读取转换字符时知道它何时到达转换说明符的末尾。在上面的例子中，转换说明符%-5p意味着记录事件的优先级应该左对齐为五个字符的宽度。
+
+如果模式字符串不包含用于处理正在记录的Throwable的说明符，则对该模式的解析将如同将`%xEx`说明符添加到字符串末尾一样。要完全禁止Throwable的格式化，只需在模式字符串中添加“%ex{0}”作为说明符。
+
+PatternLayout的参数如下所示：
+
+- `charset，String`：将syslog字符串转换为字节数组时使用的字符集。该字符串必须是有效的字符集。如果未指定，则此layout使用平台默认字符集。
+- `pattern，String`：下表中的一个或多个转换模式的复合模式字符串。不能用PatternSelector指定。
+- `patternSelector，PatternSelector`：用于分析LogEvent中的信息并确定应使用哪种模式来格式化事件。pattern和patternSelector参数是互斥的。
+- `replace，RegexReplacement`：允许替换结果字符串的部分。如果配置，替换元素必须指定正则表达式匹配和替换。这将执行类似于RegexReplacement转换器的功能，但适用于整个消息，而转换器仅适用于通过模式生成的字符串。
+- `alwaysWriteExceptions，boolean`：如果为true（默认情况下），则即使该模式不包含异常转换，也会始终写入异常。这意味着如果您不在模式中包含输出异常的方式，则将默认异常格式化程序添加到模式的末尾。设置为false会禁用此行为，并允许您从模式输出中排除异常。
+- `header，String`：要包含在每个日志文件顶部的可选标题字符串。
+- `footer，String`：要包含在每个日志文件底部的可选标题字符串。
+- `disableAnsi，boolean`：如果为true（默认值为false），则不输出ANSI转义码。
+- `noConsoleNoAnsi，boolean`：如果为true（默认值为false）且System.console()为null，则不输出ANSI转义码。
+
+RegexReplacement参数如下所示：
+
+- `regex，String`：进行结果匹配的java兼容的正则表达式。
+- `replacement，String`：替换任何匹配子串的字符串。
+
+#### Patterns
+
+Log4j中所提供的转换pattern如下所示：
+
+**`c{precision}`或`logger{precision}`**
+
+用来输出发布logging event的logger的名称。记录器转换说明符可以选择后跟precision specifier（精度说明符），精度说明符由十进制整数或以十进制整数开头的pattern组成。
+
+当精度说明符是一个整数值时，它会减小记录器名称的大小。如果数字是正数，则布局将打印相应数量的最右边的记录器名称组件。如果为负数，布局将删除相应数量的最左边的记录器名称组件。
+
+如果精度包含任何非整数字符，则layout会根据pattern缩写名称。如果精度整数小于1，则布局仍会完整地打印最右侧的标记。默认情况下，布局完全打印记录器名称。
+
+示例如下：
+
+- %c{1}，org.apache.common.Foo，Foo
+- %c{2}，org.apache.common.Foo，commons.Foo
+- %c{10}，org.apache.common.Foo，org.apache.common.Foo
+- %c{-1}，org.apache.common.Foo，apache.common.Foo
+- %c{-2}，org.apache.common.Foo，common.Foo
+- %c{-10}，org.apache.common.Foo，org.apache.common.Foo
+- %c{1.}，org.apache.common.Foo，o.a.c.Foo
+- %c{1.1.~.~}，org.apache.common.test.Foo，o.a.~.~.Foo
+- %c{.}，org.apache.common.test.Foo，....Foo
+
+**`C{precision}`或`class{precision}`**
+
+输出发出日志记录请求的调用者的全限定类名称。该转换说明符可以选择跟随精度说明符，该说明符遵循与记录器名称转换器相同的规则。
+
+生成调用方的类名（位置信息）是一项大开销的操作，可能会影响性能。谨慎使用。
+
+**`d{pattern}`或`date{pattern}`**
+
+输出记录事件的日期。日期转换说明符后面可以跟着一组大括号，其中包含每个SimpleDateFormat的日期和时间模式字符串。
+
+预定义的格式有DEFAULT，ABSOLUTE，COMPACT，DATE，ISO8601和ISO8601_BASIC。
+
+您还可以使用一组，包含每个java.util.TimeZone.getTimeZone的时区id的大括号。如果没有给出日期格式说明符，则使用DEFAULT格式。
+
+示例如下：
+
+- %d{DEFAULT}，2012-11-02 14:34:02,781
+- %d{ISO8601}，2012-11-02T14:34:02,781
+- %d{ISO8601_BASIC}，20121102T143402,781
+- %d{ABSOLUTE}，14:34:02,781
+- %d{DATE}，02 Nov 2012 14:34:02,781
+- %d{COMPACT}，20121102143402781
+- %d{HH:mm:ss,SSS}，14:34:02,781
+- %d{dd MMM yyyy HH:mm:ss,SSS}，02 Nov 2012 14:34:02,781
+- %d{HH:mm:ss}{GMT+0}，18:34:02
+- %d{UNIX}，1351866842
+- %d{UNIX_MILLIS}，1351866842781
+
+%d{UNIX}以秒为单位输出UNIX时间。%d{UNIX_MILLIS}以毫秒为单位输出UNIX时间。UNIX时间是以1970年1月1日的UTC午夜时间为基准计算当前时间和它之间以毫秒为单位的时间。虽然时间单位是毫秒，但粒度取决于操作系统（Windows）。因为只有从long到String的转换发生并且不涉及日期格式，所以这种输出事件时间的方式很有效。
+
+**`enc{pattren}{[HTML|XML|JSON|CRLF]}`或`encode{pattren}{[HTML|XML|JSON|CRLF]}`**
+
+以特定标记语言输出合适的编码和转义字符。默认情况下，如果只指定了一个选项，则这将对HTML进行编码。第二个选项用于指定应使用哪种编码格式。此转换器对编码用户提供的数据非常有用，以便输出数据不会被错误地或不安全地写入。
+
+一种典型的编码消息用法是`%enc{%m}`，但用户输入也可能来自其他位置，例如MDC`%enc{%mdc{key}}`。
+
+使用HTML编码格式，下列字符将被替换：
+
+- `'\r', '\n'`：将被分别转换为`'\\r', '\\n'`。
+- `&, <, >, ", ', /`：将被转换为对应的HTML实体。
+
+使用XML编码格式，下列字符将被替换：
+
+- `&, <, >, ", '`：将被转换为对应的XML实体。
+
+使用JSON编码格式，下列字符将依据RFC4627条款进行替换：
+
+- `U+0000 - U+001F`：`\u0000 - \u001F`
+- 其他控制字符：编码为对应的`\uABCD`格式。
+- `"`：`\"`
+- `\`：`\\`
+
+例如，{"message": "%enc{%m}{JSON}"}可用于输出包含将日志消息作为String值的有效JSON文档。
+
+使用CRLF编码格式，替换下列字符：
+
+- `'\r', '\n'`：将被分别转换为`'\\r', '\\n'`。
+
+**`equals{pattern}{test}{substitution}`或`equalsIgnoreCase{test}{substitution}`**
+
+将使用{substitution}中的字符串，替换{test}中的字符串，从而对字符串进行评估。例如，`%equals{[%marker]}{[]}{}`将替换由无Marker的日志事件所产生的`[]`为空字符串。
+
+该模式可以是任意复杂的，特别是可以包含多个转换关键字。
+
+**`ex|exception|throwable{["none"|"full"|depth|"short"|short.className"|"short.fileName"|"short.lineNumber"|"short.methodName"|"short.message"|"short.localizedMessage"]}[,filters(package,package,...)][,separator(separator)]}{suffix(pattern)}`**
+
+输出绑定到日志记录事件的Throwable trace，默认情况下，这将输出完整的trace，通常通过调用Throwable.printStackTrace()实现。
+
+可以以`%throwable{option}`形式的选项来使用下列可抛出的转换词。
+
+- `%throwable{short}`：输出Throwable的第一行。
+- `%throwable{short.className}`：输出发生异常的类的名称。
+- `%throwable{short.methodName}`：输出发生异常的方法名称。
+- `%throwable{short.fileName}`：输出发生异常的类的名称。
+- `%throwable{short.lineNumber}`：输出发生异常的行号。
+- `%throwable{short.message}`：输出消息。
+- `%throwable{short.localizedMessage}`：输出本地化的消息。
+- `%throwable{n}`：输出堆栈跟踪的前n行。
+- 指定`%throwable{none}`或`%throwable{0}`会禁止输出异常。
+- 使用`filter(packages)`，其中package是软件包名称列表，用于从堆栈跟踪中压缩匹配的堆栈帧。
+- 使用`separator`字符串来分隔堆栈跟踪的行。例如：`separator(|)`。缺省值是`line.separator`系统属性，该属性取决于操作系统。
+- 仅当存在throwable字符时才使用`ex{suffix(pattern)}`将pattern的输出添加到输出中。
+
+**`F`或`file`**
+
+输出发出记录请求的文件名。生成文件信息（位置信息）是一项高开销的操作，可能会影响性能。谨慎使用。
+
+**`highlight{pattern}{sytle}`**
+
+根据当前事件日志记录级别，将ANSI颜色添加到enclosed pattern的结果中。（请参阅Jansi配置。）
+每个级别的默认颜色是：
+
+- FATAL：Bright red
+- ERROR：Bright red
+- WARN：Yellow
+- INFO：Green
+- DEBUG：Cyan
+- TRACE：Black
+
+使用默认颜色：
+
+`%highlight{%d [%t] %-5level: %msg%n%throwable}`。
+
+通过{style}选项覆盖默认颜色设置：
+
+`%highlight{%d [%t] %-5level: %msg%n%throwable}{FATAL=white, ERROR=red, WARN=blue, INFO=black, DEBUG=green, TRACE=blue}`。
+
+可以只高亮日志事件的一部分：
+
+`%d [%t] %highlight{%-5level: %msg%n%throwable}`
+
+可以风格化消息的一部分并高亮剩下的部分：
+
+`%style{%d [%t]}{black} %highlight{%-5level: %msg%n%throwable}`
+
+也可以使用STYLE键：
+
+`%highlight{%d [%t] %-5level: %msg%n%throwable}{STYLE=Logback}`
+
+**`K{key}`或`map{key}`或`MAP{key}`**
+
+输出MapMessage中的条目（如果事件中存在MapMessage）。K转换字符之后的大括号之间放置映射关键字，如`%K{clientNumber}`，其中clientNumber是关键字。Map中对应于该键的值将输出。如果没有指定附加的子选项，那么Map键值对集合的全部内容使用格式`{{key1,val1},{key2,val2}}`输出。
+
+**`l`或`location`**
+
+输出产生记录事件的调用者的位置信息。位置信息取决于JVM的实现，但通常由调用方法的完全限定名称组成，后跟调用者输入文件名和行号（放在括号内）。生成位置信息是一项高负载的操作，可能会影响性能。谨慎使用。
+
+**`L`或`line`**
+
+输出发出日志记录请求的行号。生成行号信息（位置信息）是一项高负载的操作，可能会影响性能。谨慎使用。
+
+**`m{nolookups}{ansi}`或`msg{nolookups}{ansi}`或`message{nolookups}{ansi}`**
+
+输出应用程序提供的与记录事件相关的消息。添加`{ansi}`以使用ANSI转义代码呈现消息（需要JAnsi）。
+
+嵌入式ANSI代码的默认语法是：`@|code(,code)* text|@`
+
+例如，要以绿色呈现消息Hello，请使用：`@|green Hello|@`
+
+要将消息Hello以粗体和红色显示，请使用：`@|bold,red Warning!|@`
+
+您还可以使用以下语法在配置中自定义样式名称：`%message{ansi}{StyleName=value(,value)*( StyleName=value(,value)*)*}%n`
+
+例如：`%message{ansi}{WarningStyle=red,bold KeyStyle=white ValueStyle=blue}%n`
+
+调用可能如下所示：`logger.info("@|KeyStyle {}|@ = @|ValueStyle {}|@", entry.getKey(), entry.getValue());`
+
+使用`{nolookups}`来记录如`${date:YYYY-MM-dd}`消息，而不使用任何lookup。通常情况下，调用`logger.info("Try ${date:YYYY-MM-dd}")`将用实际日期替换日期模板`${date:YYYY-MM-dd}`。使用nolookups将禁用此功能并原样记录消息字符串。
+
+**`M`或`method`**
+
+输出发出日志记录请求的方法名称。生成调用方的方法名称（位置信息）是一项高负载操作，可能会影响性能。谨慎使用。
+
+**`marker`**
+
+如果有marker，则输出其的全名，包含其父类。
+
+**`markerSimpleName`**
+
+如果有marker，则输出其的简称，不包含其父类。
+
+**`maxLen`或`maxLength`**
+
+输出经过评估的pattern并截断结果的结果。如果长度大于20，则输出将包含尾随省略号。如果提供的长度无效，则使用默认值100。
+
+语法示例：`%maxLen{%p: %c{1} - %m%notEmpty{ =>%ex{short}}}{160}`将被限制为160个字符，并带有尾部省略号。另一个示例：`%maxLen{%m}{20}`将限制为20个字符，并且不会有结尾省略号。
+
+**`n`**
+
+输出平台相关的行分隔符字符。此转换字符与使用non-portable行分隔符字符串（如`\n`或`\r\n`）的性能几乎相同。因此，它是指定行分隔符的首选方式。
+
+**`N`或`nano`**
+
+在日志记录事件被创建时输出`System.nanoTime()`的执行结果。
+
+**`pid{[defaultValue]}`或`processId{[defaultValue]}`**
+
+如果基础平台支持，则输出进程ID。如果平台不支持进程ID，则可以指定一个可选的缺省值。
+
+**`variablesNotEmpty{pattern}`或`varsNotEmpty{pattern}`或`notEmpty{pattern}`**
+
+当且仅当pattern中的所有变量都不为空时，输出pattern的评估结果。比如：`%notEmpty{[%marker]}`。
+
+**`p|level{level=label, level=label, ...}`或`p|level{length=n}`或`p|level{lowerCase=true|false}`**
+
+输出记录事件的级别。使用`level = value，level = value`的形式提供级别名称映射，其中level是级别的名称，value是应显示的值而不是Level的名称。
+
+例如：`%level{WARN=Warning, DEBUG=Debug, ERROR=Error, TRACE=Trace, INFO=Info}`，`%level{WARN=W, DEBUG=D, ERROR=E, TRACE=T, INFO=I}`。
+
+更简洁地说，对于与上面相同的结果，您可以定义级别标签的长度：`%level{length=1}`，如果length大于级别名称的长度，则layout使用普通级别名称。
+
+你可以结合这两种选择：`%level{ERROR=Error, length=2}`，这里给定了Error级别名称和名称长度为2的所有其他级别名称。
+
+最后，您可以输出小写的级别名称（默认为大写）：`%level{lowerCase=true}`。
+
+**`r`或`relative`**
+
+输出自JVM启动直到创建记录事件以来经过的毫秒数。
+
+**`replace{pattern}{regex}{substitution}`**
+
+在pattern的计算结果中，使用在{substitution}中定义的字符串替换{regex}的正则。例如，`%replace{%msg}{\s}{}`将删除事件消息中包含的所有空格。
+
+该pattern可以是任意复杂的，特别是可以包含多个转换关键字。例如，`%replace {%logger %msg}{\.}{/}`将用正斜杠替换记录器中的所有`.`或事件的消息。
+
+
+**`rEx|rException|rThrowable{["none"|"short"|"full"|depth][,filters(package,package,...)][,separator(separator)]}{ansi(Key=Value,Value,... Key=Value,Value,... ...)}{suffix(pattern)}`**
+
+与`%throwable`转换词相同，但是打印堆栈跟踪时会从第一个抛出的异常开始，然后是每个后续的包装异常。
+
+可抛出的转换字后面跟着一个格式为`%rEx{short}`的选项，该选项将只输出Throwable的第一行或`%rEx{n}`，其中堆栈跟踪的前n行将被打印。
+
+指定`%rEx{none}`或`%rEx{0}`将会禁止打印异常。
+
+使用`filters(packages)`，其中packages是软件包名称列表，用于从堆栈跟踪中压缩匹配的堆栈帧。
+
+使用separator字符串来分隔堆栈跟踪的行。例如：separator(|)。缺省值是line.separator系统属性，该属性取决于操作系统。
+
+仅当存在throwable的打印时，才使用`rEx{suffix(pattern)}`将pattern的输出添加到输出。
+
+**`sn`或`sequenceNumber`**
+
+包括在每个事件中都会增加的序列号。该计数器是一个静态变量，因此在共享相同转换器Class对象的应用程序中只会是唯一的。
+
+**`style{pattern}{ANSI style}`**
+
+使用ANSI转义序列对封闭模式的结果进行样式设置。 样式可以由下表中由逗号分隔的样式名称列表组成。详表见官方文档。示例如下所示：
+
+`%style{%d{ISO8601}}{black} %style{[%t]}{blue} %style{%-5level:}{yellow} %style{%msg%n%throwable}{green}`。
+
+合并样式：`%d %highlight{%p} %style{%logger}{bright,cyan} %C{1.} %msg%n`。
+
+可以使用`%`后跟颜色`%black, %blue, %cyan`，比如：
+
+`%black{%d{ISO8601}} %blue{[%t]} %yellow{%-5level:} %green{%msg%n%throwable}`
+
+**`T`或`tid`或`threadId`**：输出产生日志事件的线程ID。
+
+**`t`或`tn`或`thread`或`threadName`**：输出产生日志事件的线程名称。
+
+**`tp`或`threadPriority`**：输出产生日志事件的线程优先级。
+
+**`x`或`NDC`**：输出产生记录事件的线程相关联的线程上下文栈（也称为嵌套诊断上下文或NDC）。
+
+**`X{key[,key2...]}`或`mdc{key[,key2...]}`或`MDC{key[,key2...]}`**
+
+输出产生记录事件的线程相关联的线程上下文栈（也称为嵌套诊断上下文或NDC）。在X转换字符后面可以使用大括号中放置一个或多个键的映射表，如`%X{clientNumber}`，其中clientNumber是键。将输出对应于该键在MDC中的值。
+
+如果提供了键列表，例如`%X{name, number}`，那么ThreadContext中的每个键都将使用格式`{name=val1, number=val2}`输出。键/值对将按照它们在列表中出现的顺序进行打印。
+
+如果未指定子选项，则使用格式`{key1=val1, key2=val2}`输出MDC键值对集的全部内容。键/值对将按排序顺序打印。
+
+有关更多详细信息，请参阅ThreadContext类。
+
+**`u{"RANDOM"|"TIME"}`或`uuid`**
+
+包含随机或基于时间的UUID。基于时间的UUID是一种Type1 UUID，每毫秒最多可生成10,000个唯一标识（将使用每个主机的MAC地址），并尝试确保同一主机上的多个JVM和/或ClassLoaders具有在0和16,384之间的唯一随机数将与UUID生成器Class的每个实例相关联并且包含在每个生成的基于时间的UUID中。由于基于时间的UUID包含MAC地址和时间戳，因此它们应该小心使用，因为它们可能会导致安全漏洞。
 
 ### 8.6 RFC5424 Layout
 
