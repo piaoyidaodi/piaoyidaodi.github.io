@@ -227,7 +227,7 @@ XML文件中的配置元素接受几个属性：
 - `schema`：标识类加载器的位置以找到用于验证配置的XML架构。只有当严格设置为true时才有效。如果没有设置，则不会发生架构验证。
 - `shutdownHook`：指定在JVM关闭时是否应该自动关闭Log4j。shutdown hook默认启用，但可通过将此属性设置为false来禁用。
 - `shutdownTimeout`：指定JVM关闭时有多少毫秒时间关闭appender和后台任务。默认值为零表示每个appender使用其默认超时值，并且不等待后台任务。但这只是一个hint，并非所有的appender都会遵守这一点，且并不能绝对保证快速执行关闭程序。将该值设置的太小将会增加日志事件尚未完全写入最终目的地而丢失的风险。详情请参阅`LoggerContext.stop(long, java.util.concurrent.TimeUnit)`。（通过将shutdownHook设置为false而禁用该属性。）
-- `status`：应该打印记录到控制台的内部Log4j事件的级别。此属性可被设置为`trace，debug，info，warn，error，fatal`。Log4j会记录有关初始化，翻转和其他内部操作的详细信息到status记录器。如果您需要对log4j排故，可设置`status="trace"`。
+- `status`：应该打印记录到控制台的内部Log4j事件的级别。此属性可被设置为`trace，debug，info，warn，error，fatal`。Log4j会记录有关初始化，rollover和其他内部操作的详细信息到status记录器。如果您需要对log4j排故，可设置`status="trace"`。
 （或者，设置系统属性log4j2.debug也会打印内部Log4j2日志记录到控制台，包括在发现配置文件之前发生的内部日志记录。）
 - `strict`：允许使用严格的XML格式。不支持JSON配置中。
 - `verbose`：在加载插件时启用诊断信息。
