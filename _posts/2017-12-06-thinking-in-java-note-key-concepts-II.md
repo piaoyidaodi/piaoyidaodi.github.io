@@ -4,7 +4,7 @@ title: "Java编程思想--关键概念II"
 categories: Thinking-In-Java-Note
 tag: Core-Java
 ---
-> `java`中一些重要的概念，接口等。
+> `java`中一些重要的概念，**接口、内部类**等。
 
 ### 1. 接口
 

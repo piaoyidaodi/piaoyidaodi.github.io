@@ -51,7 +51,7 @@ tag: Java-Web
 
 #### 7.3 JSP转换为Servlet
 
-1. 容器把所有**scriptlet代码和表达式代码**放入一个通用的服务方法中，可以认为是一个全面符合的`doGet/doPost`中。
+1. 容器把所有**scriptlet代码和表达式代码**放入一个通用的服务方法中，可以认为是一个全面复合的`doGet/doPost`中。
 
 2. JSP隐式对象（9个）：
 - JSPWriter - out

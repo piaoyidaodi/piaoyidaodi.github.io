@@ -66,7 +66,7 @@ tag: Java-Web
 
 1. 监听器唯一的用途就是**初始化应用**。通过`web.xml`部署监听器描述，容器通过检查类注意到监听器接口或多个接口，以此明确监听什么类型的事件。
 
-2. `ServletContextListener`监听`ServletContext`最关键的两个事件：创建和撤销。监听器类
+2. `ServletContextListener`监听`ServletContext`最关键的两个事件：创建和撤销。
 
 3. 要监听`ServletContext`事件，需要编写一个实现`ServletContextListener`的监听器类（实现其中的`contextInitialized()`和`contextDestroyed()`方法），把它放在`WEB-INF/classes`目录中，并在`web.xml`中放置`<listener>`元素告诉容器。
 

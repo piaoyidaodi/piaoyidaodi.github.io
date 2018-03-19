@@ -110,7 +110,7 @@ public class Ch2Servlet extends HttpServlet {
 
 4. 部署描述文件的其他作用：**安全角色、错误页面、标记库、初始配置信息**。
 - 尽量少改动已经过测试的源代码；
-- 即时没有源代码，也可以对应用的功能进行调整；
+- 即使没有源代码，也可以对应用的功能进行调整；
 - 不用重新编译和测试任何代码，也可以让应用适用不同的资源（如数据库）；
 - 可以更容易的维护动态安全信息，如访问控制列表和安全角色；
 - 非程序员也可以修改部署Web应用。
@@ -182,7 +182,7 @@ public class Ch2Servlet extends HttpServlet {
 - servlet**在新线程中或从线程池分配一个线程**调用`service()`方法确定HTTP方法（GET POST）并调用对应的方法；`service()`方法总在自己的栈中调用；
 - servlet调用`destroy()`方法。
 
-5. **每个请求**都在一个单独的线程中运行。**任何servlet一般都只有一个实例**，**容器运行多个线程来处理对一个servlet的多个请求**。
+5. **每个请求**都在一个单独的线程中运行。**任何servlet一般都只有一个实例（如此理解Spring的bean一般都是单例的）**，**容器运行多个线程来处理对一个servlet的多个请求**。
 
 6. 不要在servlet构造函数中写入初始化代码。因为**servlet实例化时，servlet的配置文件可能还没有初始化完成**。
 
@@ -232,7 +232,7 @@ public class Ch2Servlet extends HttpServlet {
 - `POST`请求有体信息，大多数情况关心的是`request.getParameter()`抽出的参数值，这些值可能很大；还有可能创建一个servlet来处理计算机驱动的请求，其中请求体包含要处理的文本或二进制内容。此时使用`getReader()`或`getInputStream()`方法获取HTTP请求中的**体**而**不包含首部**。
 
 7. 获取端口：
-- `getRemotePort()`，服务器再问客户端，得到客户的端口；
+- `getRemotePort()`，服务器问客户端，得到客户的端口；
 - `getServletPort()`，所有请求送到一个端口（服务器监听的端口）；
 - `getLocalPort()`，每一个线程的本地端口。
 
