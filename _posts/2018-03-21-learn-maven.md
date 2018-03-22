@@ -67,7 +67,7 @@ Maven项目的核心为`pom.xml`，HelloWorld项目示例如下：
 maven的项目主代码位于`src/main/java`目录中，会被打包到最终构件中，而测试代码位于`src/main/test`中，不会打包。主代码示例如下：
 
 ```java
-package cc.joyjon.mvn;
+package cc.joyjon.mvntest.helloworld;
 
 public class HelloWorld{
     public String sayHello(){
@@ -89,7 +89,7 @@ public class HelloWorld{
 
 ### 2.3 编写测试代码
 
-示例代码如下所示，为项目增加Junit单元测试：
+pom.xml示例代码如下所示，为项目增加Junit单元测试：
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -102,10 +102,12 @@ public class HelloWorld{
     <version>1.0-SNAPSHOT</version>
     <name>Maven Hello World Project</name>
     <dependencies>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.7</version>
-        <scope>test</scope>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.7</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
 ```
@@ -118,7 +120,24 @@ public class HelloWorld{
 - 执行要测试的行为。
 - 检查结果。
 
-在JUnit3中约定所有的测试方法都以test开头，Junit4中所有测试方法应以@Test进行标注，但仍遵循这一约定。
+在JUnit3中约定所有的测试方法都以test开头，Junit4中所有测试方法应以@Test进行标注，但仍遵循这一约定。测试代码如下所示：
+
+```java
+package cc.joyjon.mvntest.helloworld;
+
+import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+
+public class HelloWorldTest{
+    @Test
+    public void testSayHello(){
+        HelloWorld helloWorld=new HelloWorld();
+        String result=helloWorld.sayHello();
+        assertEquals("HelloWorld",result);
+    } 
+}
+```
+
 
 运行测试方法`mvn clean test`时，实际执行了`clean:clean`、`resources:resources`、`complier:complier`、`resources:testResources`、`compiler:testCompile`。暂时需要了解的是，在maven执行测试之前，会首先自动执行项目主资源的处理、编译，测试资源的处理、编译等。
 
