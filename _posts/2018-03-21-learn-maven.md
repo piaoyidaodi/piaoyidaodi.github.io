@@ -161,3 +161,31 @@ public class HelloWorldTest{
 ```
 
 按上述操作执行之后，运行`surefire:test`任务，其中surefire是maven中负责执行测试的插件，负责运行测试用例并输出测试报告。
+
+### 2.4 打包和运行
+
+maven的默认打包类型为jar，通过执行`mvn clean package`进行打包。在打包前会执行编译、测试等操作，其中`jar:jar`任务是jar插件的jar目标将项目主代码打包成hello-world-1.0-SNAPSHOT.jar文件并放置与target目录中。
+
+通过使用`mvn clean install`将项目输出的jar安装到本地仓库。
+
+任何一个maven项目需经历compile, test, package, install的过程。
+
+### 2.5 使用Archetype生成项目骨架
+
+在maven3中使用`mvn archetype:generate`命令可解析生成最稳定的版本，在maven2中不行。
+
+命令实际上运行了`maven-archetype-plugin`插件，运行后输出很多Archetype，每一个前面都会有对应的编号，同时命令行会提示一个默认编号，其对应的Archetype为`maven-archetype-quickstart`，回车选择后，Maven会提示创建项目的groupId、artifactId、version以及package。
+
+## 3. 坐标和依赖
+
+### 3.1 坐标详解
+
+maven的坐标元素包括：groupId, artifactId, version, packaging, classifier。其默认的中央仓库地址为`http://repo1.maven.org/maven2`。
+
+- `groupId`：定义当前maven项目隶属的实际项目。注意，maven项目和实际项目不一定是一对一关系，比如SpringFramework实际项目对应的maven项目有很多，如spring-core等。
+- `artifactId`:定义实际项目中的一个maven项目（模块），推荐使用实际项目名称作为artifactId的**前缀**。
+- `version`:定义maven项目中当前所处的版本。
+- `packaging`:定义maven项目的打包方式。
+- `classifier`:定义构建输出的一些附属构件。如果主构件为nexus-indexer-2.0.0.jar，若生成文档代码nexus-indexer-2.0.0-doc.jar，则此时doc为附属构件。
+
+其中前三项为必须定义的，packaging是可选，而classifier是不能直接定义的。
