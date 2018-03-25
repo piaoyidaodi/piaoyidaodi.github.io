@@ -189,3 +189,24 @@ maven的坐标元素包括：groupId, artifactId, version, packaging, classifier
 - `classifier`:定义构建输出的一些附属构件。如果主构件为nexus-indexer-2.0.0.jar，若生成文档代码nexus-indexer-2.0.0-doc.jar，则此时doc为附属构件。
 
 其中前三项为必须定义的，packaging是可选，而classifier是不能直接定义的。
+
+### 3.2 依赖范围
+
+maven在编译项目主代码时使用一套classpath；在执行测试时使用另一套classpath；实际运行时又用一套classpath；在`scope`中定义：
+
+- `compile`：**编译依赖范围，默认使用**。使用此范围的依赖，在编译、测试、运行时都有效。
+- `test`：**测试依赖范围**。只对于测试classpath有效。典型如JUnit。
+- `provided`：**已提供依赖范围**。对于编译和测试时都有效，而运行时无效。典型的如servlet-api，因为容器已提供。
+- `runtime`：**运行时依赖范围**。测试和运行时有效，编译主代码时无效。典型为JDBC驱动实现，项目主代码编译只需要JDK提供的JDBC接口即可。
+- `system`：**系统依赖范围**，与`provided`依赖范围一致，但使用`system`范围的依赖必须通过systemPath元素显示的指定依赖文件的路径。其与本机系统绑定，应谨慎使用。
+- `import`：**导入依赖范围**（2.0.9及以上）。对以上三类classpath不造成影响。
+
+### 3.3 传递依赖
+
+传递依赖性简而言之就是，项目中所需求一个包可能会依赖其他开源类库。如项目生命了对spring-core的依赖，而spring-core对commons-logging的依赖。
+
+当第二直接依赖范围为compile时，传递性依赖范围与第一直接依赖范围一致；当第二直接依赖的范围是test时，依赖不会得到传递；当第二直接依赖的范围是provided时，只传递第一直接依赖范围也为provided的依赖，且传递性依赖范围同样为provided；当第二直接依赖的范围是runtime时，传递性依赖的范围与第一直接依赖的范围一致，但compile例外，此时传递性依赖的范围为runtime。
+
+如果项目依赖于同一个库的多个版本，maven依赖调解的第一原则是：**路径最近者优先**；第二原则为：**第一声明者优先**。
+
+### 3.4 最佳实践
