@@ -87,16 +87,19 @@ maven的生命周期是抽象的，其实际行为都是由插件完成的，该
 ### 5.1 生命周期详解
 
 maven拥有三套相互独立的生命周期：`clean, default, site`。
+
 - clean，生命周期的目的是清理项目。
 - default，生命周期的目的是构建项目。
 - site，生命周期的目的是建立项目站点。
 
 **clean生命周期**包含三个阶段：
+
 - `pre-clean`：执行一些清理前需要完成的工作。
 - `clean`：清理上一次构建生成的文件。
 - `post-clean`：执行一些清理后需要完成的工作。
 
 **default生命周期**定义了真正构建所需要执行的所有步骤，是生命周期中最核心的部分，阶段如下：
+
 - `validate`。
 - `initialize`。
 - `generate-sources`。
@@ -120,3 +123,91 @@ maven拥有三套相互独立的生命周期：`clean, default, site`。
 - `verify`。
 - `install`：将包安装到maven本地仓库，供本地maven项目使用。
 - `deploy`：将最终的包复制到远程仓库，供其他开发人员和maven项目使用。
+
+**site生命周期**包含以下阶段：
+
+- `pre-site`：执行一些在生成项目站点之前需要完成的工作。
+- `site`：生成项目站点文档。
+- `post-site`：执行一些在生成项目站点之后需要完成的工作。
+- `site-deploy`：将生成的项目站点发布到服务器上。
+
+**命令行与生命周期**，命令行执行maven任务最主要的方式就是调用maven生命周期函数。各个生命周期是相互独立的，而生命周期的阶段是有前后依赖关系的。
+
+- `mvn clean`：调用clean生命周期的clean阶段。实际执行阶段为clean生命周期的pre-clean和clean阶段。
+- `mvn test`：调用default生命周期的test阶段。实际执行阶段为default生命周期的validate, initialize等直到test的所有阶段。
+- `mvn clean install`：调用clean生命周期的pre-clean和clean阶段，以及default生命周期从validate到install的所有阶段。
+- `mvn clean deploy site-deploy`：调用clean生命周期的clean阶段、default生命周期的deploy阶段，以及site生命周期的site-deploy阶段，该命令结合了maven所有三个生命周期。
+
+### 5.2 插件
+
+一个插件具有多项功能，每一个功能就是一个插件目标。写法为`pre:post`格式。如compile:compile是maven-compile-plugin的compile目标。
+
+maven的生命周期阶段与插件的目标互相绑定，以完成某个具体的构建任务。如编译这一任务对应了default生命周期的compile阶段，而maven-compile-plugin的compile目标可完成该任务。
+
+maven的**内置绑定**如下图所示：
+
+clean, site生命周期阶段与插件目标默认绑定关系如下图所示：
+![clean site](/assets/img/maven/20180327_maven_clean_site.png)
+
+default生命周期阶段与插件目标默认绑定关系如下图所示（打包为jar）：
+![clean site](/assets/img/maven/20180327_maven_default.png)
+
+maven可进行**自定义绑定**，常见的例子是创建源码jar包，需要用户配置maven-source-plugin并使用jar-no-fork目标完成打包，配置示例如下：
+
+```xml
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>2.1.1</version>
+            <executions>
+                <execution>
+                    <id>attach-sources</id>
+                    <phase>verify</phase>
+                    <goals>
+                        <goal>jar-no-fork</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+```
+
+配置中每个executions下的每个execution子元素可配置一个执行任务，示例中配置了一个id为attach-sources的任务并通过phase配置绑定到verify生命周期阶段上，再通过goals配置要执行的插件目标。如果不绑定phase则拥有默认绑定阶段。
+
+### 5.3 插件配置
+
+maven命令中使用-D参数并伴随一个参数键=参数值来配置插件目标的参数，如`mvn install -Dmaven.test.skip=true`。参数`-D`是Java自带的，其功能是通过命令行设置一个java系统属性。
+
+很少改变的全局参数、插件任务的特定参数在pom文件中配置。
+
+使用maven-help-plugin获取插件详情，如`mvn help:describe -Dplugin=org.apache.maven.plugins:maven-compiler-plugin:2.1`获取maven-compiler-plugin2.1版本的信息。
+
+maven插件仓库的配置使用pluginRepositories和pluginRepository标签配置插件，其余子元素的含义与依赖远程仓库完全一样。
+
+## 6. 聚合与继承
+
+### 6.1 聚合
+
+通过maven聚合，将多个maven模块统一构建。创建另外一个maven项目，示例如下所示：
+
+```xml
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>cc.joyjon.mvn</groupId>
+    <artifactId>combine</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Combine</name>
+    <modules>
+        <module>part1</module>
+        <module>part2</module>
+    </modules>
+</project>
+```
+
+适用于其他模块相同的groupId, version。使用**packaging为pom**。modules中定义了聚合的模块，每一个module的值都是一个当前pom的相对目录。通常将聚合模块放在项目目录的最顶层，其他模块作为聚合模块的子目录存在。
+
+### 6.2 继承
