@@ -210,3 +210,7 @@ maven在编译项目主代码时使用一套classpath；在执行测试时使用
 如果项目依赖于同一个库的多个版本，maven依赖调解的第一原则是：**路径最近者优先**；第二原则为：**第一声明者优先**。
 
 ### 3.4 最佳实践
+
+- 排除依赖。若需要排除某一个依赖中的传递依赖，可在该dependency中设置exclusions（每一个exclusions可以包含多个exclusion），并设置排除项的groupId和artifactId。
+- 归类依赖。对依赖中相同的部分进行唯一的声明，方便修改和维护。可以在该pom文件中，设置properties标签，并在其内设置以引用名作为标签的子标签，在其他部分引用。如`<properties><version>2.1</versjion></properties>`。
+- 优化依赖。maven完成自动解析后的依赖成为已解析依赖，使用`mvn dependency:list`可查看已解析依赖；通过`mvn dependency:tree`分析当前依赖树；通过`mvn dependency:analyze`分析当前项目的依赖，使用时需注意**Used undeclared dependencies**（项目中使用但未进行显式声明的依赖）和**Unused declared dependencies**（项目中未使用，但显式声明的依赖）。对于其中的分析，未显式声明的应显式声明；未使用的应作为参考，不能简单的删除，这是因为`dependency:analyze`只能分析编译主代码和测试代码需要用到的依赖。
