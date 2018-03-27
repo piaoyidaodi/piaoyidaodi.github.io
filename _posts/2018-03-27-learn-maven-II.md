@@ -91,12 +91,12 @@ maven拥有三套相互独立的生命周期：`clean, default, site`。
 - default，生命周期的目的是构建项目。
 - site，生命周期的目的是建立项目站点。
 
-clean生命周期包含三个阶段：
+**clean生命周期**包含三个阶段：
 - `pre-clean`：执行一些清理前需要完成的工作。
 - `clean`：清理上一次构建生成的文件。
 - `post-clean`：执行一些清理后需要完成的工作。
 
-default生命周期定义了真正构建所需要执行的所有步骤，是生命周期中最核心的部分，阶段如下：
+**default生命周期**定义了真正构建所需要执行的所有步骤，是生命周期中最核心的部分，阶段如下：
 - `validate`。
 - `initialize`。
 - `generate-sources`。
