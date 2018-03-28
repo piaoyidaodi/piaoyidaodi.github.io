@@ -211,3 +211,27 @@ maven插件仓库的配置使用pluginRepositories和pluginRepository标签配�
 适用于其他模块相同的groupId, version。使用**packaging为pom**。modules中定义了聚合的模块，每一个module的值都是一个当前pom的相对目录。通常将聚合模块放在项目目录的最顶层，其他模块作为聚合模块的子目录存在。
 
 ### 6.2 继承
+
+继承解决pom内容重复的问题。
+
+父pom文件使用与其他模块一致的groupId和version，使用自己的artifactId。需要特别注意的是，它的packaging为pom。继承模块的pom示例如下所示：
+
+```xml
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>cc.joyjon.mvn</groupId>
+        <artifactId>parent</artifactId>
+        <version>1.0-SNAPSHOT</version>
+        <relativePath>../parent/pom.xml</relativePath>
+    </parent>
+    <artifactId>child</artifactId>
+    <name>child</name>
+    <dependencies>
+        ...
+    </dependencies>
+    <build>...</build>
+</project>
+```
+
+构建时，maven会首先根据relativePath查找父pom，默认为`../pom.xml`，即上级目录。
