@@ -95,7 +95,7 @@ Set-Cookie: c2=b; path="/", c3=c; domain="localhost"
 2
 ```
 
-最有效地获取所有给定类型的消息头的方法是使用HeaderIterator接口。
+最有效地获取所有给定类型的消息头的方法是使用`HeaderIterator`接口。
 
 ```java
 HttpResponse response = new BasicHttpResponse(HttpVersion.HTTP_1_1, HttpStatus.SC_OK, "OK");
@@ -165,7 +165,7 @@ HttpClient根据内容的来源区分了三种实体：
 
 **Repeatable实体**
 
-一个实体可以是可重复的，这意味着它的内容可以被多次读取。这只适用于自包含的实体（如ByteArrayEntity或StringEntity）。
+一个实体可以是可重复的，这意味着它的内容可以被多次读取。这只适用于自包含的实体（如`ByteArrayEntity`或`StringEntity`）。
 
 **使用HTTP实体**
 
@@ -282,7 +282,7 @@ if (entity != null) {
 
 #### 1.1.7 生成实体内容
 
-HttpClient提供了几个类，可以用来通过HTTP连接有效地流出内容。这些类的实例可以与封装实体请求（如POST和PUT等）关联，以便将实体内容封装到传出的HTTP请求中。HttpClient为大多数常用数据容器（如字符串，字节数组，输入流和文件）提供了几个类：StringEntity，ByteArrayEntity，InputStreamEntity和FileEntity。
+HttpClient提供了几个类，可以用来通过HTTP连接有效地流出内容。这些类的实例可以与封装实体请求（如POST和PUT等）关联，以便将实体内容封装到传出的HTTP请求中。HttpClient为大多数常用数据容器（如字符串，字节数组，输入流和文件）提供了几个类：`StringEntity，ByteArrayEntity，InputStreamEntity和FileEntity`。
 
 ```java
 File file = new File("somefile.txt");
@@ -292,11 +292,11 @@ HttpPost httppost = new HttpPost("http://localhost/action.do");
 httppost.setEntity(entity);
 ```
 
-请注意InputStreamEntity非repeatable的，因为它只能从底层数据流读取一次。通常建议实现一个自定义的自包含HttpEntity类，而不是使用通用的InputStreamEntity，比如FileEntity。
+请注意`InputStreamEntity`非repeatable的，因为它只能从底层数据流读取一次。通常建议实现一个自定义的自包含HttpEntity类，而不是使用通用的`InputStreamEntity`，比如`FileEntity`。
 
 **HTML表单**
 
-例如，许多应用程序需要模拟提交HTML表单的过程，以便登录到Web应用程序或提交输入数据。HttpClient提供实体类UrlEncodedFormEntity来支持该过程。
+例如，许多应用程序需要模拟提交HTML表单的过程，以便登录到Web应用程序或提交输入数据。HttpClient提供实体类`UrlEncodedFormEntity`来支持该过程。
 
 ```java
 List<NameValuePair> formparams = new ArrayList<NameValuePair>();
@@ -307,7 +307,7 @@ HttpPost httppost = new HttpPost("http://localhost/handler.do");
 httppost.setEntity(entity);
 ```
 
-UrlEncodedFormEntity实例将使用所谓的URL编码来对参数进行编码并生成以下内容：`param1=value1&param2=value2`。
+`UrlEncodedFormEntity`实例将使用所谓的URL编码来对参数进行编码并生成以下内容：`param1=value1&param2=value2`。
 
 **内容分块**
 
@@ -323,7 +323,7 @@ httppost.setEntity(entity);
 
 #### 1.1.8 响应操纵器
 
-处理响应的最简单和最方便的方法是使用ResponseHandler接口，该接口包含`handleResponse(HttpResponse response)`方法。这种方法完全免除了用户担心连接管理问题。当使用ResponseHandler时，无论请求执行成功还是导致异常，HttpClient都会自动确保连接释放回连接管理器。
+处理响应的最简单和最方便的方法是使用`ResponseHandler`接口，该接口包含`handleResponse(HttpResponse response)`方法。这种方法完全免除了用户担心连接管理问题。当使用`ResponseHandler`时，无论请求执行成功还是导致异常，HttpClient都会自动确保连接释放回连接管理器。
 
 ```java
 CloseableHttpClient httpclient = HttpClients.createDefault();
@@ -386,7 +386,7 @@ HttpClient实现被认为是**线程安全的**。建议将此类的同一个实
 
 #### 1.2.2 HTTPClient资源释放
 
-当不再需要使用CloseableHttpClient实例并且即将离开作用域时，必须通过调用`CloseableHttpClient#close()`方法关闭与其关联的连接管理器。
+当不再需要使用`CloseableHttpClient`实例并且即将离开作用域时，必须通过调用`CloseableHttpClient#close()`方法关闭与其关联的连接管理器。
 
 ```java
 CloseableHttpClient httpclient = HttpClients.createDefault();
@@ -421,7 +421,7 @@ HttpContext可以包含任意对象，因此可能在多个线程之间不安全
 
 - 表示请求执行过程中收到的所有重定向位置集合的`java.util.List <URI>`对象。
 
-可以使用HttpClientContext适配器类来简化与上下文状态的交互。
+可以使用`HttpClientContext`适配器类来简化与上下文状态的交互。
 
 ```java
 HttpContext context = <...>
@@ -500,7 +500,7 @@ for (int i = 0; i < 10; i++) {
 
 ### 1.5 异常处理
 
-HTTP协议处理器可能会抛出两种类型的异常：`java.io.IOException`，如果发生I/O故障（例如socket超时或socket重置）以及代表HTTP失败（例如违反HTTP协议）的`HttpException`。 通常，**I/O错误被认为是非致命的且可恢复的，而HTTP协议错误被认为是致命的并且不能自动从中恢复**。请注意，HttpClient实现将HttpExceptions重新抛出为ClientProtocolException，它是java.io.IOException的子类。这使得HttpClient的用户可以从单个catch子句处理I/O错误和协议违规。
+HTTP协议处理器可能会抛出两种类型的异常：`java.io.IOException`，如果发生I/O故障（例如socket超时或socket重置）以及代表HTTP失败（例如违反HTTP协议）的`HttpException`。 通常，**I/O错误被认为是非致命的且可恢复的，而HTTP协议错误被认为是致命的并且不能自动从中恢复**。请注意，HttpClient实现将`HttpExceptions`重新抛出为`ClientProtocolException`，它是java.io.IOException的子类。这使得HttpClient的用户可以从单个catch子句处理I/O错误和协议违规。
 
 #### 1.5.1 HTTP传输安全
 
@@ -530,7 +530,7 @@ HTTP/1.1规范定义了一个幂等方法：方法也可以具有“幂等性”
 
 #### 1.5.4 请求重试处理
 
-为了启用自定义异常恢复机制，应该提供HttpRequestRetryHandler接口的实现。
+为了启用自定义异常恢复机制，应该提供`HttpRequestRetryHandler`接口的实现。
 
 ```java
 HttpRequestRetryHandler myRetryHandler = new HttpRequestRetryHandler() {
