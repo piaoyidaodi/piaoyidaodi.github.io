@@ -200,3 +200,210 @@ caching HttpClient的默认实现将缓存条目和缓存响应的主体存储�
 如果这些选项都不适合您的应用程序，那么可以通过实现`HttpCacheStorage`接口提供您自己的后端存储，然后在构建时向caching HttpClient提供它。在这种情况下，缓存条目将使用您的方案进行存储，但您将重用所有关于HTTP/1.1遵从性和缓存处理的逻辑。一般来说，应该可以使用支持键/值存储（类似于Java Map接口）的任何东西来创建`HttpCacheStorage`实现，并且能够进行原子更新。
 
 最后，通过一些额外的努力，完全有可能建立一个多层缓存层次结构；例如，将一个在内存的caching HttpClient包装在一个存储缓存项的本地磁盘或远程memcached中，遵循类似于虚拟内存，L1/L2处理器缓存等的模式。
+
+## 7. 高级主题
+
+### 7.1 自定义客户端连接
+
+在某些情况下，为了能够处理非标准的，不符合规范的行为，可能有必要定制HTTP消息的传输方式，使用超出HTTP参数范围的形式进行传输。例如，对于Web爬虫，可能需要强制HttpClient接受格式错误的响应头以挽救消息的内容。
+
+通常，插入自定义消息解析器或自定义连接实现的过程涉及几个步骤：
+
+- 提供一个定制的`LineParser`/`LineFormatter`接口实现。根据需要实现消息解析/格式化逻辑。
+
+```java
+class MyLineParser extends BasicLineParser {
+
+    @Override
+    public Header parseHeader(
+            CharArrayBuffer buffer) throws ParseException {
+        try {
+            return super.parseHeader(buffer);
+        } catch (ParseException ex) {
+            // Suppress ParseException exception
+            return new BasicHeader(buffer.toString(), null);
+        }
+    }
+
+}
+```
+
+- 提供一个自定义的`HttpConnectionFactory`实现。根据需要将默认请求writer和/或响应解析器替换为自定义的。
+
+```java
+HttpConnectionFactory<HttpRoute, ManagedHttpClientConnection> connFactory =
+        new ManagedHttpClientConnectionFactory(
+            new DefaultHttpRequestWriterFactory(),
+            new DefaultHttpResponseParserFactory(
+                    new MyLineParser(), new DefaultHttpResponseFactory()));
+```
+
+- 配置HTTPClient使用自定义连接工厂。
+
+```java
+PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager(
+    connFactory);
+CloseableHttpClient httpclient = HttpClients.custom()
+        .setConnectionManager(cm)
+        .build();
+```
+
+### 7.2 有状态HTTP连接
+
+虽然HTTP规范假定会话状态信息总是以HTTP cookie的形式嵌入到HTTP消息中，因此HTTP连接始终是无状态的，但这种假设在现实生活中并不总是成立。在某些情况下，HTTP连接是使用特定的用户身份或特定的安全上下文创建的，因此无法与其他用户共享，并且只能由同一用户重用。此类有状态HTTP连接的示例是NTLM身份验证连接和带有客户端证书身份验证的SSL连接。
+
+#### 7.2.1 管理用户token
+
+HttpClient依靠`UserTokenHandler`接口来确定给定的执行上下文是否是用户特定的。如果上下文是用户特定的，则该处理程序返回的token对象应该唯一标识当前用户，或者如果上下文不包含任何特定于当前用户的资源或细节，则为null。用户token将用于确保特定用户资源不会与其他用户共享或重新使用。
+
+`UserTokenHandler`接口的默认实现使用`Principal`类的实例来表示HTTP连接的状态对象，如果它可以从给定的执行上下文中获取的话。 `DefaultUserTokenHandler`将使用基于用户规则连接的身份验证方案（如NTLM）或开启客户机身份验证的SSL会话。如果两者都不可用，则返回null token。
+
+```java
+CloseableHttpClient httpclient = HttpClients.createDefault();
+HttpClientContext context = HttpClientContext.create();
+HttpGet httpget = new HttpGet("http://localhost:8080/");
+CloseableHttpResponse response = httpclient.execute(httpget, context);
+try {
+    Principal principal = context.getUserToken(Principal.class);
+    System.out.println(principal);
+} finally {
+    response.close();
+}
+```
+
+如果默认用户不满足他们的需求，用户可以提供自定义实现：
+
+```java
+UserTokenHandler userTokenHandler = new UserTokenHandler() {
+
+    public Object getUserToken(HttpContext context) {
+        return context.getAttribute("my-token");
+    }
+
+};
+CloseableHttpClient httpclient = HttpClients.custom()
+        .setUserTokenHandler(userTokenHandler)
+        .build();
+```
+
+#### 7.2.2 持久化状态连接
+
+请注意，只有在执行请求时将相同的状态对象绑定到执行上下文，才能重用携带状态对象的持久连接。因此，确保同一个上下文由同一用户重用并执行后续HTTP请求，或者在执行请求之前将用户token绑定到上下文非常重要。
+
+```java
+CloseableHttpClient httpclient = HttpClients.createDefault();
+HttpClientContext context1 = HttpClientContext.create();
+HttpGet httpget1 = new HttpGet("http://localhost:8080/");
+CloseableHttpResponse response1 = httpclient.execute(httpget1, context1);
+try {
+    HttpEntity entity1 = response1.getEntity();
+} finally {
+    response1.close();
+}
+Principal principal = context1.getUserToken(Principal.class);
+
+HttpClientContext context2 = HttpClientContext.create();
+context2.setUserToken(principal);
+HttpGet httpget2 = new HttpGet("http://localhost:8080/");
+CloseableHttpResponse response2 = httpclient.execute(httpget2, context2);
+try {
+    HttpEntity entity2 = response2.getEntity();
+} finally {
+    response2.close();
+}
+```
+
+### 7.3 使用F`utureRequestExecutionService`
+
+使用`FutureRequestExecutionService`，您可以安排http调用并将响应视为`Future`。这是很有用的，比如，多次调用Web服务。使用`FutureRequestExecutionService`的优点是可以使用多个线程同时调度请求，设置任务超时或在不再需要响应时取消它们。
+
+`FutureRequestExecutionService`使用继承`FutureTask`的`HttpRequestFutureTask`封装请求。该类允许你在取消任务的同时并跟踪各种指标，如请求持续时间。
+
+#### 7.3.1 创建`FutureRequestExecutionService`
+
+`futureRequestExecutionService`的构造函数接受任何现有的httpClient实例和一个ExecutorService实例。配置两者时，最重要的是将最大连接数与你要使用的线程数设置一致。当线程数多于连接数时，由于没有可用的连接，连接可能会开始超时。如果连接数比线程多，`futureRequestExecutionService`将不会全部使用它们。
+
+```java
+HttpClient httpClient = HttpClientBuilder.create().setMaxConnPerRoute(5).build();
+ExecutorService executorService = Executors.newFixedThreadPool(5);
+FutureRequestExecutionService futureRequestExecutionService =
+    new FutureRequestExecutionService(httpClient, executorService);
+```
+
+#### 7.3.2 安排请求
+
+要安排请求，只需提供一个`HttpUriRequest`，`HttpContext`和一个`ResponseHandler`。由于请求由执行服务处理，因此必须使用`ResponseHandler`。
+
+```java
+private final class OkidokiHandler implements ResponseHandler<Boolean> {
+    public Boolean handleResponse(
+            final HttpResponse response) throws ClientProtocolException, IOException {
+        return response.getStatusLine().getStatusCode() == 200;
+    }
+}
+
+HttpRequestFutureTask<Boolean> task = futureRequestExecutionService.execute(
+    new HttpGet("http://www.google.com"), HttpClientContext.create(),
+    new OkidokiHandler());
+// blocks until the request complete and then returns true if you can connect to Google
+boolean ok=task.get();
+```
+
+#### 7.3.3 取消任务
+
+计划任务可能会被取消。如果任务尚未执行，仅仅排队等待执行，它将永远不会执行。如果正在执行并且`mayInterruptIfRunning`参数设置为true，则会在请求上调用`abort()`；否则将被忽略响应，但请求将被允许正常完成。对`task.get()`的任何后续调用都将失败并出现`IllegalStateException`。应该注意的是取消任务只是释放客户端资源。该请求实际上可以在服务器端正常处理。
+
+```java
+task.cancel(true)
+task.get() // throws an Exception
+```
+
+#### 7.3.4 回调
+
+除了手动调用`task.get()`之外，还可以使用`FutureCallback`实例在请求完成时获取回调。这与`HttpAsyncClient`中使用的接口相同。
+
+```java
+private final class MyCallback implements FutureCallback<Boolean> {
+
+    public void failed(final Exception ex) {
+        // do something
+    }
+
+    public void completed(final Boolean result) {
+        // do something
+    }
+
+    public void cancelled() {
+        // do something
+    }
+}
+
+HttpRequestFutureTask<Boolean> task = futureRequestExecutionService.execute(
+    new HttpGet("http://www.google.com"), HttpClientContext.create(),
+    new OkidokiHandler(), new MyCallback());
+```
+
+#### 7.3.5 指标
+`FutureRequestExecutionService`通常用于执行大量Web服务调用的应用程序。为了便于例如监控或配置调优，`FutureRequestExecutionService`会跟踪几个指标。
+
+每个`HttpRequestFutureTask`都提供了获取任务计划，开始和结束时间的方法。此外还有，请求和任务持续时间。这些指标汇总在`FutureRequestExecutionMetrics`实例中的`FutureRequestExecutionService`中，该实例可通过`FutureRequestExecutionService.metrics()`进行访问。
+
+```java
+task.scheduledTime() // returns the timestamp the task was scheduled
+task.startedTime() // returns the timestamp when the task was started
+task.endedTime() // returns the timestamp when the task was done executing
+task.requestDuration // returns the duration of the http request
+task.taskDuration // returns the duration of the task from the moment it was scheduled
+
+FutureRequestExecutionMetrics metrics = futureRequestExecutionService.metrics()
+metrics.getActiveConnectionCount() // currently active connections
+metrics.getScheduledConnectionCount(); // currently scheduled connections
+metrics.getSuccessfulConnectionCount(); // total number of successful requests
+metrics.getSuccessfulConnectionAverageDuration(); // average request duration
+metrics.getFailedConnectionCount(); // total number of failed tasks
+metrics.getFailedConnectionAverageDuration(); // average duration of failed tasks
+metrics.getTaskCount(); // total number of tasks scheduled
+metrics.getRequestCount(); // total number of requests
+metrics.getRequestAverageDuration(); // average request duration
+metrics.getTaskAverageDuration(); // average task duration
+```
