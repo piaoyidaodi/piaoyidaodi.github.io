@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Maven -- Learn Maven I"
-categories: Log4j2
+categories: Maven
 tag: Java-Libs
 ---
 > `《Maven实战》读书记一记 - I`

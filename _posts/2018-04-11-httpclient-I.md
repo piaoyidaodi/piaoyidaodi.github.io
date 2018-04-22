@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Apache HttpClient I"
-categories: Log4j2
+categories: HttpClient
 tag: Java-Libs
 ---
 > `Apache HttpClient 4.5.5 Tutorial - I`
