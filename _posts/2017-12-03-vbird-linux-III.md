@@ -4,7 +4,7 @@ title: "鸟哥的Linux私房菜--速查III"
 categories: Linux
 tag: Linux-Note
 ---
-> 鸟哥的Linux私房菜——第十二章至第X章边读边记。
+> 鸟哥的Linux私房菜——第十二章至第十四章边读边记。
 
 ### 12. 正则表达式与文件格式化处理
 
@@ -252,5 +252,3 @@ exit 0
 2. `sudo`
 - 只有在`/etc/sudoers`内的用户才能够执行`sudo`指令。
 - `sudo [-b][-u 新使用者账号]`,`[-b]`后续指令放入后台执行，不与当前shell产生影响，`[-u]`预切换账户名，无指定则为`root`。
-
-3. `visudo`与`/etc/sudoers`

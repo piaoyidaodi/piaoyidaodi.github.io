@@ -4,185 +4,337 @@ title: "鸟哥的Linux私房菜--速查IV"
 categories: Linux
 tag: Linux-Note
 ---
-> 鸟哥的Linux私房菜——第二十二章至第X章边读边记。
+> 鸟哥的Linux私房菜——第十六章至第十九章边读边记。
 
-### 20. 开机流程、模块管理与Loader
+### 16. 例行工作和计划
 
-#### 20.1 开机流程
+#### 16.1 计划类别
 
-主要开机流程大概如下：
+`at`：需要atd服务，是个可以处理仅执行一次就结束的计划指令。
 
-按开机键
+`crontab`：依赖于crond服务，是可处理将会一直循环的工作。可循环的时间为分钟、小时、每周、每月或每年等。crontab除了可以直接执行外，亦可编辑/etc/crontab来配置。
 
-`-> BIOS`：获取CMOS中的BIOS配置，如硬件信息等。
+例行任务分类：
+- 登陆日志的轮替，防止日志文件过大。
+- 登陆文件分析。
+- 建立locate数据库。
+- whatis数据库建立。
+- RPM支持数据库的建立。
+- 移除暂存文件。
+- 与网络服务有关的分析行为。
 
-`-> MBR`：硬盘第一个扇区446B的MBR，存储boot loader。
+#### 16.2 循环计划
 
-`-> boot loader`：每个系统含有各自独有的的boot loader。每一个filesystem或分区，都会保留一块启动扇区（boot sector）给bootloader，每个操作系统默认安装一套bootloader到自己的文件系统中。主要功能：**提供选单、加载内核、转交给其他loader**。
+**crontab权限：**
+- `/etc/cron.allow`：写入可使用crontab的账号，不在其中的不能使用。
+- `/etc/cron.deny`：不可使用crontab的账号，每个账号单独一行。
+- allow的优先级高于deny。
+- 使用crontab的工作项会被记录进入`/var/spool/cron/`中，而crontab的每一项执行工作都会被记录进入`/var/log/cron`中。
 
-`--> 同时加载kernel`：一般被放置在/boot里，并取名为/boot/vmlinuz。磁盘、鼠标等作为模块核心功能（动态加载），存放在/lib/modules中。
+**crontab使用：**
 
-`--> 同时加载initrd`：由于kernel需加载磁盘中的核心模块（包括磁盘驱动），而磁盘驱动就在磁盘中，存在矛盾。因此使用虚拟文件系统（Initial RAM Disk，一般存放在/boot/initrd中）。它可以被bootloader加载，并在内存中仿真一个根目录和一个可执行程序，加载核心模块。
+`crontab [-u username] [-l|-e|-r]`
+- `-u`，只有root才能进行这个任务，亦即帮其他使用者建立或移除crontab工作计划；
+- `-e`，编辑crontab工作内容；
+- `-l`：查阅crontab工作内容；
+- `-r`：移除所有的crontab工作内容，若仅要移除一项，请用-e去编辑。
+- 最前面的六个字段分别为**分 时 日 月 周**，通配符`*`表示时候，通配符`,`表示某些单独的时段，通配符`-`表示一段时间，通配符`*/n`表示，每个n个单位时间。
+- 可通过配置`/etc/crontab`进行编辑，cron程序每分钟会进行一次读取，也可通过`/etc/init.d/crond restart`重启服务。
 
-`--> /sbin/init`：开始正常开机流程后的第一个程序（PID为1），主要用于准备软件执行环境，配置文件为/etc/inittab。inittab主要为runlevel，分为（0-6）级，详细man inittab。
+#### 16.3 可唤醒停机期间的计划
 
-`--> /etc/rc.d/rc.sysinit`：进行硬件信息初始化，可使用dmesg查看详细。基本所有的预设配置都在/etc/sysconfig中。如果想增加核心模块，将模块写入/etc/sysconfig/modules/*.modules中。
+使用`anacron`，其通过在系统开机时，对比与之前一次执行crontab任务的时间戳，来进行唤醒开机后的计划。
 
-`--> /etc/rcN.d & /etc/sysconfig`：启动各项服务。根据runlevel设置N，执行对应/etc/rc.d/rcN.d目录下的脚本。其中对/etc/rcN.d/K??开头的文件执行stop，对/etc/rcN.d/K??执行start动作，所有的文件都是链接，该链接使用chkconfig进行处理。
+`anacron [-sfnu] [job]`
+- `-s`：开始连续的执行各项工作，会依据时间记录文件的数据判断是否进行；
+- `-f`：强制进行，而不去判断时间记录文件的时间戳；
+- `-n`：立刻执行未进行的任务，而不延迟delay等待；
+- `-u`：仅更新时间记录文件的时间戳，不进行任何工作；
+- `job`：由 /etc/anacrontab 定义的各项工作名称。
 
-`--> /etc/rc.d/rc.local`：任何开机时的自定义工作shell放入。
+### 17. 进程管理与SELinux
 
-`--> 加载终端或X`：根据/etc/inittab的设定。
+#### 17.1 进程
 
-#### 20.2 开机过程中的主要配置文件
+触发任何一个事件时，系统都会将他定义成为一个程序，并且给予这个程序一个ID ，称为PID，同时依据启动这个程序的用户与相关属性关系（UID/GID等），给予这个PID一组有效的权限设定。从此以后，这个PID的权限将决定能够在系统上面进行的操作。
 
-`/etc/modprobe.conf`：进行自定义模块加载定义。
+**Linux的进程关系：**
+- 系统先以 fork 的方式复制一个与父程序相同的暂存程序，这个程序与父程序唯一的差别就是PID不同。但是这个暂存程序还会多一个PPID参数，即父程序程序标识符！
+- 暂存程序开始以exec加载实际要执行的程序。
+- 常驻内存的后台程序提供服务，称为服务或后台进程。
 
-`/etc/sysconfig/*`
-- autoconfig：规范使用者身份认证机制，默认使用MD5算法，并不使用外部身份验证机制。
-- clock：设定Linux主机时区。
-- i18n：语系。
-- keyboard&mouse：设定键盘鼠标的形式。
-- network：设定是否需启动网络，主机名和网关。
+#### 17.2 工作管理
 
-`init N`：切换run level；`runlevel`：查看run level。
+**bash工作的概念：**
+- 可以直接进行提示字符操作的环境称为前台程序。
+- 不能直接与使用者交互的为后台程序，后台程序无法使用ctrl+c终止，可使用bg/fg调取该工作。
+- 可管理的进程必须是自己的shell的子进程。
 
-#### 20.3 核心模块
+**bash工作管理：**
 
-核心模块放置在`/lib/modules/$(uname -r)/kernel`中，目录如下：
-- `arch`：与硬件平台有关的项目，例如 CPU 的等级等等。
-- `crypto`：内核所支持的加密的技术，例如md5或者是des等等。
-- `drivers`：一些硬件的驱动程序，例如显示适配器、网络卡、PCI相关硬件等等。
-- `fs`：内核所支持的filesystems，例如vfat, reiserfs, nfs等等。
-- `lib`：一些函数库。
-- `net`：与网络有关的各项协议数据，还有防火墙模块(net/ipv4/netfilter/*)等等。
-- `sound`：与音效有关的各项模块。
+在命令的最后直接加入`&`，表示放入后台执行，执行完后会在终端显示完成消息。考虑到一些操作，如打包过程中出现较多的输入输出信息，影响前台程序的界面，建议使用重定向，将数据导入某个文件中。
 
-使用`depmod [-Ane]`建立/lib/modules/$(uname -r)/modules.dep文件，记录核心模块相依性。
-- `-A`：若加入该参数，则depmod会去搜寻更新模块，找到之后才会去更新。
-- `-n`：不写入而是将结果输出到屏幕。
-- `-e`：显示出目前已加载的不可执行模块名称。
+使用ctrl+z，将当前**工作暂停并放入后台**。
 
-`lsmod`显示模块名称、模块大小、此模块是否被其他模块使用。
+`jobs [-lrs]`查看后台工作状态。
+- `-l`：除了列出job number与指令串之外，同时列出PID的号码；
+- `-r`：仅列出正在后台运行的工作；
+- `-s`：仅列出正在后台当中暂停（stop）的工作。
 
-`modinfo [-adln] [module_name|filename]`列出模块信息。
-- `-a`：仅列出作者名称。
-- `-d`：仅列出该modules的描述。
-- `-l`：仅列出授权（license）。
-- `-n`：仅列出该模块的详细路径。
+`fg %n`：取出代号为n的后台程序到前台，其中%可省略。
 
-`insmod [/full/path/module_name] [para]`：加载一个完整文件名模块，不主动分析模块相依性。不建议使用。
+`bg %n`：将代号为n的后台程序在后台运行，其中%可省略。
 
-`rmmod [-fw] module_name`：不建议使用。
-- `-f`：强制将该模块移除掉，不论是否正被使用。
-- `-w`：若该模块正被使用，则rmmod会等待该模块被使用完毕后，才移除。
+`kill -signal %n`：移除进程，直接接数字n为进程PID，%n则控制具体的工作。
+- `-1`：SIGHUP，重新读取一次参数的配置文件（类似于reload）。
+- `-2`：SIGINT，代表与由键盘输入ctrl+c同样的作用。
+- `-9`：SIGKILL，强制中断，立刻强制移除此进程。
+- `-15`：SIGTERM，以正常方式终止，与9不一样。
+- `-17`：SIGSTOP，相当于ctrl+z。
 
-`modprobe [-lcfr] module_name`：自行处理加载问题。
-- `-c`：列出目前系统所有的模块，更详细的代号对应表。
-- `-l`：列出目前在`/lib/modules/$uname -r/kernel`当中的所有模块完整文件名。
-- `-f`：强制加载该模块。
-- `-r`：类似rmmod，就是移除某个模块。
+`killall [-iIe] 指令名称`：常用于服务进程的清除。
+- -i：交互式，若需要删除会提示用户。
+- -e：完整指令不超过15个字符。
+- -I：指令名称（可能包含参数）忽略大小写。
 
-#### 20.4 Grub
+**系统后台管理：**
 
-**grub分为两个阶段加载：**
-- Stage1：执行MBR或boot sector中安装的最小主程序。
-- Stage2：加载配置文件，一般在/boot/grub下，主要为menu.list或grub.conf配置文件，和各类文件系统定义。
+`nohup 指令 &`：加入&则是放在后台中工作，否在在终端前台工作。且此指令不支持bash内建命令，必须为真实命令名称。
 
-**grub的特点：**
-- 认识与支持较多的文件系统，并且可以使用grub的主程序直接在文件系统中搜寻内核；
-- 开机的时候，可以自行编辑与修改开机设定项目，类似bash；
-- 可以动态搜寻配置文件，而不需要在修改配置文件后重新安装grub。亦即是我们只需要修改完/boot/grub/menu.lst里的设定后，下次开机就生效了。
+#### 17.3 程序管理
 
-grub中的硬盘和分区，与Linux中的代号完全不同，如(hd0,0)，第一个搜到的硬盘号为0，第一个分区为0，并依此类推。
+**ps程序查询：**
 
-**/boot/grub/menu.lst配置文件：**
-- title之前属于grub的整体设置，包括预设等待时间`timeout`与默认的开机项目`default`，还有显示的画面、显示选单`hiddenmenu`等特性。title 后面才是指定开机的内核或者是boot loader控制权。
-- root指内核放置的分区目录。
-- kernel指内核名。
-- initrd指RAM Disk文件名。
+`ps aux``ps -lA`，查询所有进程数据；`ps axjf`，查询程序树状态。
+- `-A`：显示所有进程，同-e；
+- `-a`：不与terminal相关的所有进程；
+- `-u`：有效使用者相关的process；
+- `x`：通常与a这个参数一起使用，可列出较完整信息； 
+- `l`：较长、较详绅的将该PID的信息列出；
+- `j`：工作的格式 (jobs format)；
+- `-f`：做一个更为完整的输出。
 
-**建立新的initrd文件：**
-`mkinitrd [-v] [--with=模块名称] initrd 文件名 内核版本`：-v，显示运作过程。
+`ps -l`标头：
+- `F`：程序权限。通常4为root；1表示子程序仅进行了fork而没有实际exec。
+- `S`：程序状态。R，正在运行；S，可被唤醒的睡眠状态；D，不可被唤醒的睡眠状态，通常处于IO阻塞；T，停止状态；Z，将是状态，程序已终止但无法移出内存之外。
+- `PRI/NI`：Priority/Nice的缩写，表示CPU执行优先级，值越小优先级越高。
+- `ADDR/SZ/WCHAN`：都与内存相关。ADDR表示进程在内存的位置，如果进程running则显示为-；SZ表示进程的内存使用；WCHAN表示程序是否运作中，，如果进程running则显示为-。
+- `TTY`：终端位置，远程则为（pts/n）。
 
-**测试安装grub：**
-`grub-install [--root-directory=DIR] install_device`：DIR为其他安装位置，默认为/boot/grub/XX；install_device为装置代号。
+`ps aux`标头：
+- `VSZ`：进程使用的虚拟内存（KB）。
+- `RSS`：进程使用的固定内存（KB）。
 
-### 22. 软件安装：源码与Tarball
+`pstree [-A|-U] [-up]`：
+- `-A`：各程序树之间的连接以 ASCII 字符来连接；
+- `-U`：各程序树之间的连接以万国码的字符来连接。在某些终端接口下可能会有错误；
+- `-p`：同时列出每个进程的 PID；
+- `-u`：同时列出每个进程的所属账号名称。
 
-#### 22.1 分类与管理
+**top动态程序查询**
 
-1. RedHat系列（如 Fedora/CentOS 系列）使用RPM软件管理机制和yum在线更新模式；Debian使用的dpkg软件管理机制和APT在线更新模式。
+`top [-d 数字] | top[-bnp]`：
+- `-d`：后接秒数，表示整个画面更新的描述，默认为5秒。
+- `-b`：批次处理，通常搭配数据流重定向输出结果为文件。
+- `-n`：与-b搭配，需要进行几次top输出。
+- `-p`：指定查询某个PID。
 
-#### 22.2 几类工具
+top执行过程中可使用的按键操作：
+- `?`：显示在top当中可以输入的按键指令；
+- `P`：以CPU的使用资源排序显示；
+- `M`：以Memory的使用资源排序显示；
+- `N`：以PID来排序显示；
+- `T`：由进程使用的CPU时间累积 (TIME+) 排序；
+- `k`：给予某个PID一个讯号 (signal)；
+- `r`：给予某个PID重新制订一个nice值；
+- `q`：离开top软件的按键。
 
-**`ldconfig`与`/etc/ld.so.conf`**
+**系统优先级**
 
-`ldconfig [-f conf] [ -C cache] [-p]`：增加库文件的高速缓存
-- -f conf：conf指的是某个文件名，即使用 conf 作为 libarary库的取得路径，而不以/etc/ld.so.conf作为默认值
-- -C cache：cache指的是某个文件名，即使用 cache 作为快取暂存，而不以/etc/ld.so.cache为默认值
-- -p ：列出目前有的所有凼式库资料内容（在 /etc/ld.so.cache 内的资料）
+PRI是由内核动态调整的优先级，无法直接干涉，通过设置Nice影响PRI。PRI(new)=PRI(old)+nice。
+- nice值可调范围为-20~19。
+- root可随意调整自己和其他程序的nice值，范围为-20~19。
+- 一般用户可调整自己程序的nice值，范围为0~19。且nice值只能越调越高。
 
-**`ldd`程序的动态链接库的解析**
+`nice [-n 数字] command`：执行新指令设置新的nice值。
 
-`ldd [-vdr] [filename]`
-- -v ：列出所有内容信息；
-- -d ：重新将资料有遗失的link点秀出来
-- -r ：将 ELF 有关的错误内容秀出来！
+`renice [数字] PID`：已存在程序的nice重新调整。
 
-### 23. 软件安装：RPM，SRPM与YUM
+**其他系统资源查询**
 
-#### 23.1 RPM与DPKG
+`free [-b|-k|-m|-g] [-t]`：查询内存使用情况。
+- `-b|-k|-m|-g`：显示单位。
+- `-t`：输出结果显示物理内存与swap总量。
 
-**`dpkg`**：基于Debian，本地使用dpkg，在线使用apt；**`RPM`**：基于Red Hat，如Fedora，CentOS等，本地使用rpm/rpmbuild，在线使用yum。他们都提供了软件的依赖说明。
+`uname [-asrmpi]`：查询系统和内核信息。
+- `-a`：所有系统相关的信息，包括下面的数据都会被列出来；
+- `-s`：系统核心名称；
+- `-r`：内核版本；
+- `-m`：本系统的硬件名称，例如i686或x86_64等；
+- `-p`：CPU类型，与 -m 类似，叧是显示 CPU 的类型；
+- `-i`：硬件平台 (ix86)。
 
-**SRPM**通常扩展名为XXX.src.rpm，提供源码文件，并比tar包多软件相依性说明。
+`uptime`：显示出top指令的画面最上面一行。
 
-#### 23.2 RPM的使用
+`netstat [-atunlp]`：网络监控。
+- `-a`：将目前系统上所有的联机、监听、Socket数据都列出来。
+- `-t`：列出 tcp 网绚封包的数据。
+- `-u`：列出 udp 网绚封包的数据。
+- `-n`：不已程序的服务名称，以端口 (port number) 来显示；
+- `-l`：列出目前正在网绚监听的 (listen) 服务；
+- `-p`：列出该网绚服务的癿程序 PID。
 
-**安装、升级**
+`dmesg`：分析内核产生的日志，如硬件侦测信息。
 
-`rpm -ivh [一个文件|多个文件|网络地址]`：-i是install的意思；-v查看详细安装信息；-h显示安装进度。
+`vmstat`：动态侦测系统资源（CPU/内存/磁盘输入输出）变化。
+- `-a`：使用 inactive/active(活跃与否) 取代 buffer/cache 的内存输出信息；
+- `-f`：开机到目前为止，系统复制 (fork) 的程序数；
+- `-s`：将一些事件 (开机至目前为止) 导致的内存变化情况列表说明；
+- `-S`：后面可以接单位，让显示的数据有单位。例如 K/M 取代 bytes；
+- `-d`：列出磁盘的读写总量统计表；
+- `-p`：后面列出分区，可显示该分区的读写总量统计表。
 
-`rpm [--replacepkgs|--prefix path]`分别表示，安装时更新已安装的包，以及安装时安装到指定的目录。
+`vmstat`的几个字段：
+- `procs`：r，等待运作中的程序数量；b，不可被唤醒的程序数量。这两个项目越多，代表系统越忙碌。
+- `memory`：swpd，虚拟内存被使用容量；free，未被使用的内存容量；buff，用于缓冲存储器；cache，用于高速缓存。这部份则与 free 是相同的。
+- `swap`：si，由磁盘中将程序取出的量；so：由于内存不足而将没用到的程序写入到磁盘的swap的容量。如果 si/so 的数值太大，表示内存内的数据常常得在磁盘与主存储器之间传来传去，系统性能会很差。
+- `io`：bi，由磁盘写入的区块数量；bo，写入到磁盘去的区块数量。如果这部份的值越高，代表系统的 I/O 非常忙碌。
+- `system`：in，每秒被中断的程序次数；cs，每秒钟进行的事件切换次数。这两个数值越大，代表系统与接口设备的交互非常频繁，包括磁盘、网卡、时间钟等。
+- `cpu`：us，非核心层的 CPU 使用状态；sy，核心层所使用的 CPU 状态；id，闲置的状态；wa，等待 I/O 所耗费的 CPU 状态；st，被虚拟机 (virtual machine) 所盗用的 CPU 使用状态。
 
-`rpm [-Uvh|-Fvh] [一个文件|多个文件|网络地址]`：-U指软件若未安装过则直接安装，若已安装过则更新至最新版；-F指，不会安装未安装过的软件，只有安装过的软件会被升级。
+#### 17.4 特殊文件与程序
 
-**查询**
+**SUID、SGID**
 
-rpm在查询时，查询/var/lib/rpm/目录下的文件。
-- `-q`：仅查询，后面接的软件名称是否有安装；
-- `-qa`：列出所有的，已经安装在本机Linux系统上面的所有软件名称；
-- `-qi`：列出该软件的详细信息（information），包含开发商、版本与说明等；
-- `-ql`：列出该软件所有的档案与目录所在完整文件名（list）；
-- `-qc`：列出该软件的所有配置文件（找出在 /etc/ 底下的文件而已)；
-- `-qd`：列出该软件的所有说明文件（找出与man有关的档案而已）；
-- `-qR`：列出与该软件有关的相依软件所含的档案（Required 的意思）
-- `-qf`：由后面接的文件名，找出该档案属于哪一个已安装的软件；
-- `-qp[icdlR]`：用途仅在于找出某个RPM档案内的信息，而非已安装的软件信息。
+`SUID`：
+- 仅对二进制程序有效。
+- 执行用户需对该程序有x可执行权限。
+- 本权限仅在执行该程序过程中有效。
+- 执行用户将暂时拥有该程序拥有者的权限。
 
-**卸载**
+`SGID`：
+- 可以设置文件或目录，且仅对二进制程序有用。
+- 执行用户需对该程序有x可执行权限。
+- 执行用户在执行过程中，将暂时拥有该程序群组的支持。
 
-`rpm -e`：卸载。
+`SUID、SGID`的设定，如若增加SUID则为`chmod 4775 filename`：
+- SUID为4；
+- SGID为2；
+- SBIT为2。
 
-`rpm --rebuilddb`：重建RPM文件库。
+**程序管理工具**
 
-#### 23.3 YUM的使用
+`fuserfuser [-umv] [-k [i][-signal]] file/dir`：使用文件找出使用文件的程序。
+- `-u`：除了程序的 PID 外，同时列出该程序的拥有者；
+- `-m`：后面接的那个文件名会主动提到该文件系统的最顶层，对 umount 不成功很有效；
+- `-v`：可以列出每个文件与程序还有指令的完整相关性；
+- `-k`：找出使用该文件、目录的 PID ，并试图以 SIGKILL 这个讯号给予该 PID；
+- `-i`：必须与 -k 配合，在删除 PID 前会先询问使用者
+- `-signal`：例如 -1 -15 等等，若不加癿话，预设是 SIGKILL (-9) 。
 
-**查询**
+`lsof [-aUu] [+d]`：列出被程序开启的文件名。
+- `-a`：多项数据需要同时成立才显示出结果时；
+- `-U`：仅列出 Unix like 系统的 socket 文件类型；
+- `-u`：后面接 username，列出该用户相关程序所开启的文件；
+- `+d`：后面接目录，亦即找出某个目录底下已经被开启的文件。
 
-`yum [-y|--installroot=path] [list|info|search|provides|whatprovides] [para]`进行查询。
-- `-y`：提供自动的yes相应；
-- `--installroot=/some/path`：将软件安装在指定path；
-- `search`：搜寻某个软件名字或描述；
-- `list`：列出yum所管理的所有软件名称与版本，类似于`rmp -qa`；
-- `info`：同上，类似于`rmp -qai`；
-- `provides`：类似于`rmp -qf`；
+`pidof [-sx] program_name`：找出某支正在执行的程序的PID
+- -s：仅列出一个 PID 而不列出所有的 PID；
+- -x：同时列出该 program name 可能的 PPID 那个程序的 PID。
 
-**安装、升级**
+#### 17.5 SELinux初探
 
-`yum [install|update]`。
+pass
 
-**卸载**
+### 18. 系统后台服务（daemon）
 
-`rpm remove`：卸载。
+#### 18.1 daemon与service
+
+系统的运行需要service，运行service的进程称为daemon。简单的可以理解为同一种东西。如果依据 daemon 的启动与管理方式来区分，基本上，可以将 daemon 分为可独立启动的 stand alone ，与透过super daemon 来统一管理的服务两大类。
+
+**stand alone服务：**
+
+stand alone类型的服务可自行启动而不通过其他机制管理，通常启动并加载到内存后就一直占用系统资源。最大的优点是：因为一直存在内存内持续的提供服务，响应速度快。
+
+**super daemon服务：**
+
+通过统一的super daemon唤醒服务。特点在于，当没有客户端的要求时，各项服务都是未启动的情况，等到有来自客户端的要求时， super daemon 才唤醒相对应的服务。当客户端的要求结束后，被唤醒的这个服务也会关闭并释放系统资源。这种机制的好处是：
+- 由于 super daemon 负责唤醒各项服务，因此 super daemon 可以具有安全控管的机制，就是类似网络防火墙的功能；
+- 由于服务在客户端的联机结束后就关闭，因此不会一直占用系统资源。
+缺点：
+- 有客户端的联机才会唤醒该服务，而该服务加载到内存的时间需要考虑，因此服务的反应时间会比较慢一些。
+
+**daemon的工作形式：**
+- signal-control：通过消息管理，只要有任何客户需求，就会立即启动处理，如打印机服务。
+- interval-control：每隔一段时间执行服务，需要配置文件配置。
+
+**daemon的命名：**
+
+通常在服务器的名字后加入d代表daemon。
+
+**daemon启动脚本：**
+- `/etc/init.d`：系统上几乎所有的服务启动脚本都放置在此目录。
+- `/etc/sysconfig/*`：几乎所有的服务都会将初始化的一些选项讴定写入到这个目录下，如，登录档的 syslog 这支 daemon 的初始化设定就写入在 /etc/sysconfig/syslog；而网络设定则写在 /etc/sysconfig/network 中。
+- `/etc/xinetd.conf, /etc/xinetd.d/*`：super daemon 配置文件。
+- `/var/lib/*` ：各服务产生的数据库。如，数据库管理系统 MySQL 的数据库默认就是写入 `/var/lib/mysql/` 这个目录。
+- `/var/run/*`：各服务的程序的 PID 记录处。daemon 是程序，所以当然也可以利用 kill 或 killall 来管理，不过为了担心管理时影响到其他的程序， 因此 daemon 通常会将自己的 PID 记录一份到 /var/run/ 当中。
+
+**stand alone daemon启动方式：**
+- 使用`/etc/init.d/*`中的脚本启动，一般含有详细的使用方法。
+- 使用`service [service name] (start|stop|...) [--status-all]`：--status-all，列出所有stand alone服务状态。
+
+**super daemon启动方式：**在配置文件目录`/etc/xinetd.d/*`中，修改服务的`disable`选项设置为no则为启动该服务，然后再重新启动xinetd（super daemon的实现程序）。
+
+#### 18.2 super daemon配置文件
+
+默认配置文件`/etc/xinetd.conf`并包含`/etc/xinetd.d/*`目录下的所有配置文件。
+
+#### 18.3 系统开启的服务
+
+`netstat`经常用于查找启动了网络监听的服务。
+
+**`chkconfig`管理系统服务默认开机启动：**
+
+`chkconfig --list [服务名称]`：仅将目前的各项服务状态栏列出来。
+
+`chkconfig --level [0123456] [服务名称] [on|off]`：设定某个服务在该level下的启动或关闭。
+
+`chkconfig [--add|--del] [服务名称]`：
+- --add：增加一个服务名称给 chkconfig 来管理，该服务名称**必须在 /etc/init.d/ 内**。
+- --del：删除一个给 chkconfig 管理的服务。
+
+### 19. 认识与分析登陆日志
+
+#### 19.1 登陆日志概览
+
+登陆日志作用：
+- 解决系统错误
+- 解决网络服务问题
+- 过往事件记录
+
+**常用的登陆日志名：**
+- `/var/log/cron`：计划工作。
+- `/var/log/dmesg`：系统开机时内核检查的各类问题。
+- `var/log/lastlog`：记录系统上面所有账号最近一次登陆系统的信息。
+- `var/log/maillog  var/log/mail/*`：记录SMTP和POP3产生的信息。
+- `var/log/messages`：错误信息。
+- `var/log/secure`：涉及到账号密码的软件，登陆时都会记录。
+- `var/log/wmp  var/log/faillog`：分别记录正确和错误的登陆账户信息。
+- `var/log/httpd/*  /var/log/news/*  /var/log/samba/*`：服务器信息。
+
+**常用的服务与程序：**
+- syslogd：主要登录系统与网络等服务的信息；
+- klogd：主要登录核心产生的各项信息；
+- logrotate：主要在进行登录文件的轮替功能。
+
+#### 19.2 syslogd：记录登陆日志的服务
+
+syslogd的配置文件为：/etc/syslog.conf
+
+#### 19.3 登陆日志的轮替（logrotate）
+
+pass
+
+#### 19.4 分析登陆日志
+
+pass
