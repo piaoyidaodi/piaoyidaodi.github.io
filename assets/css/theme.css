@@ -111,7 +111,8 @@ h1,h2,h3,h4,h5,h6{
     padding-right: 2px;
     font-size: 18px;
     color: red;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: auto;
 }
 
 .post-menu a{
