@@ -57,6 +57,7 @@ h1,h2,h3,h4,h5,h6{
 .menu {
     position: fixed;
     top:60px;
+    bottom: 60px;
     right:0%;
 }
 
@@ -112,7 +113,7 @@ h1,h2,h3,h4,h5,h6{
     font-size: 18px;
     color: red;
     overflow-x: auto;
-    overflow-y: auto;
+    overflow-y: scroll;
 }
 
 .post-menu a{

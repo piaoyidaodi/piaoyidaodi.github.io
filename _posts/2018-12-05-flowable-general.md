@@ -16,6 +16,14 @@ tag: Java-Framework
 
 3. 所有在包名中含有`impl`的类，是接口的内部实现，应只能用于内部使用。
 
+4. Flowable 6.4.0支持的数据库包括：
+- h2: jdbc:h2:tcp://localhost/flowable
+- mysql: jdbc:mysql://localhost:3306/flowable?autoReconnect=true
+- oracle: jdbc:oracle:thin:@localhost:1521:xe
+- postgres: jdbc:postgresql://localhost:5432/flowable
+- db2: jdbc:db2://localhost:50000/flowable
+- mssql: jdbc:sqlserver://localhost:1433;databaseName=flowable (jdbc.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver) OR jdbc:jtds:sqlserver://localhost:1433/flowable (jdbc.driver=net.sourceforge.jtds.jdbc.Driver)
+
 ### 1.2 Flowable概览
 
 Flowable是一个用Java编写的轻量级业务流程引擎。Flowable流程引擎允许您部署BPMN2.0流程定义（用于定义流程的行业XML标准）、创建流程定义的实例、进行查询、访问活动或历史流程实例及相关数据等等。
