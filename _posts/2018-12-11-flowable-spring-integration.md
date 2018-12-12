@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Flowable文档学习笔记————Spring Integration"
+title: "Flowable文档学习笔记--Spring Integration"
 categories: Flowable
 tag: Java-Framework
 ---

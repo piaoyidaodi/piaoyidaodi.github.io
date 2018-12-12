@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Flowable文档学习笔记————Configuration"
+title: "Flowable文档学习笔记--Configuration"
 categories: Flowable
 tag: Java-Framework
 ---
